@@ -13,9 +13,9 @@ services:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pvapp -d pvapp"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   app:
     build:
@@ -26,19 +26,14 @@ services:
     environment:
       DATABASE_URL: postgresql://pvapp:pvapp@db:5432/pvapp
       NEXTAUTH_URL: http://localhost:3000
-      NEXTAUTH_SECRET: dev-secret-change-in-production
-      STORAGE_TYPE: local
+      # Demo-Secret – nur für lokalen Test geeignet
+      NEXTAUTH_SECRET: demo-secret-lokal-bitte-aendern-fuer-produktion
       STORAGE_LOCAL_PATH: /app/storage
     volumes:
       - app_storage:/app/storage
     depends_on:
       db:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
 volumes:
   pgdata:
