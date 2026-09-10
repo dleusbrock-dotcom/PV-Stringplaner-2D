@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AddInverterDialog } from './add-inverter-dialog'
 import { AssignStringToMpptSelect } from './assign-string-select'
-import { cn } from '@/lib/utils'
 
 interface InverterPanelProps {
   projectId: string

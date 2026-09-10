@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { ZoomIn, ZoomOut, Move, MousePointer, Eraser } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -70,7 +70,6 @@ const CELL_SIZE = 44 // px per grid cell
 
 export function RoofCanvas({
   roofArea,
-  projectId,
   activeStringId,
   strings,
   isLocked,
@@ -84,10 +83,10 @@ export function RoofCanvas({
   const [isPointerDown, setIsPointerDown] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Update placements when roofArea changes
-  useEffect(() => {
+  // Update placements when roofArea prop changes (derived state pattern)
+  if (placements !== roofArea.placements && roofArea.placements.length !== placements.length) {
     setPlacements(roofArea.placements)
-  }, [roofArea.placements])
+  }
 
   const cellPx = CELL_SIZE * zoom
   const activeString = strings.find((s) => s.id === activeStringId)

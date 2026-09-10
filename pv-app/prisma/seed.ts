@@ -22,7 +22,7 @@ async function main() {
     update: {},
     create: { name: 'monteur', description: 'Monteur / Techniker' },
   })
-  const bauleitungRole = await prisma.role.upsert({
+  await prisma.role.upsert({
     where: { name: 'bauleitung' },
     update: {},
     create: { name: 'bauleitung', description: 'Bauleitung' },
@@ -40,7 +40,7 @@ async function main() {
     },
   })
 
-  const planerUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: 'planer@pv-planer.de' },
     update: {},
     create: {

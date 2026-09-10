@@ -27,7 +27,6 @@ export function NewProjectForm() {
     trigger,
     formState: { errors },
   } = useForm<NewProjectInput>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(newProjectSchema) as Resolver<NewProjectInput>,
     defaultValues: { country: 'DE' },
   })
@@ -49,7 +48,7 @@ export function NewProjectForm() {
     setIsSubmitting(true)
     try {
       await createProject(data)
-    } catch (error) {
+    } catch {
       toast({
         title: 'Fehler beim Anlegen',
         description: 'Das Projekt konnte nicht erstellt werden.',

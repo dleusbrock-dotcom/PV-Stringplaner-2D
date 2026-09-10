@@ -1,6 +1,6 @@
 // PV Stringplaner Service Worker
 const CACHE_NAME = 'pv-planer-v1'
-const OFFLINE_URL = '/offline'
+// const OFFLINE_URL = '/offline' // reserved for future offline fallback page
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [

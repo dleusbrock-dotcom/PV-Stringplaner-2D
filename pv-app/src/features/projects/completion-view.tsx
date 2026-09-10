@@ -2,12 +2,10 @@
 
 import { useState } from 'react'
 import {
-  CheckCircle2, AlertTriangle, Clock, FileText,
-  Lock, Pen, X, Check
+  CheckCircle2, AlertTriangle, Lock, Pen, X, Check
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { formatDateTime } from '@/lib/utils'
 import { completeProject, addSignature } from '@/features/projects/completion-actions'
 import { toast } from '@/components/ui/toaster'
@@ -84,7 +82,6 @@ export function CompletionView({ project, userId }: CompletionViewProps) {
   ]
 
   const mustItemsOk = checks.filter((c, i) => [0, 3].includes(i)).every((c) => c.ok)
-  const allOk = checks.every((c) => c.ok)
   const isLocked = !!project.lockedAt
   const isCompleted = project.status === 'COMPLETED'
 

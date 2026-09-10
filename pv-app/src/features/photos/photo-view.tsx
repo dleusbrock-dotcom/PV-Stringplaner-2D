@@ -1,10 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Camera, Upload, Grid, List, Image as ImageIcon, X } from 'lucide-react'
+import { Camera, Grid, List, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { formatDateTime } from '@/lib/utils'
 import { uploadPhoto } from './actions'
 import { toast } from '@/components/ui/toaster'
 

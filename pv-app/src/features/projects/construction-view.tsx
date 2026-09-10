@@ -38,7 +38,9 @@ interface ConstructionViewProps {
 }
 
 export function ConstructionView({ project }: ConstructionViewProps) {
-  const [isOnline, setIsOnline] = useState(true)
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  )
   const [lastSync, setLastSync] = useState<Date | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
 
@@ -47,7 +49,6 @@ export function ConstructionView({ project }: ConstructionViewProps) {
     const handleOffline = () => setIsOnline(false)
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-    setIsOnline(navigator.onLine)
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
@@ -205,7 +206,7 @@ export function ConstructionView({ project }: ConstructionViewProps) {
         <CardContent className="divide-y divide-[var(--line)]">
           {project.checklists.length === 0 ? (
             <p className="text-sm text-[var(--ink-faint)] py-2">
-              Noch keine Checklisten. Gehen Sie zu „Prüfungen".
+              Noch keine Checklisten. Gehen Sie zu &#8222;Prüfungen&#8220;.
             </p>
           ) : (
             project.checklists.map((cl) => {

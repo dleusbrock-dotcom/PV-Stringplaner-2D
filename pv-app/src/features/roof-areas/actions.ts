@@ -15,7 +15,7 @@ const addRoofAreaSchema = z.object({
 })
 
 export async function addRoofArea(input: z.infer<typeof addRoofAreaSchema>) {
-  const session = await getSession()
+  await getSession()
   const data = addRoofAreaSchema.parse(input)
 
   const maxSort = await prisma.roofArea.findFirst({

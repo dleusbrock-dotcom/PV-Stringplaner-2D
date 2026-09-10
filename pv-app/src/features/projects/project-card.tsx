@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {
   MapPin, User, Calendar, AlertCircle, Camera,
-  ChevronRight, Wifi, WifiOff
+  ChevronRight
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'

@@ -2,13 +2,12 @@
 
 import { useState, useTransition } from 'react'
 import {
-  Plus, Search, Zap, Battery, Sun, Settings, ToggleLeft, ToggleRight, Edit2, X, Check
+  Plus, Search, Zap, Battery, Sun, Settings, ToggleLeft, ToggleRight, X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { toast } from '@/components/ui/toaster'
-import { createLibraryItem, updateLibraryItem, toggleLibraryItem } from './library-actions'
+import { createLibraryItem, toggleLibraryItem } from './library-actions'
 import type { ComponentCategory } from '@prisma/client'
 
 interface LibraryItem {

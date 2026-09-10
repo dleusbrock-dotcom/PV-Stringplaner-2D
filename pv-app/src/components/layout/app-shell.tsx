@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Sun, FolderOpen, Settings, LogOut,
-  LayoutDashboard, Bell, ChevronDown
+  LayoutDashboard, ChevronDown
 } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils'

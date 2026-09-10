@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Users, Shield, Database, Activity, UserCheck, UserX, Plus } from 'lucide-react'
+import { Users, Shield, Database, Activity, Plus } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toaster'
-import { createUser, toggleUserActive, resetUserPassword } from './admin-actions'
+import { createUser, resetUserPassword } from './admin-actions'
 
 interface AdminUser {
   id: string
@@ -88,17 +88,6 @@ function NewUserDialog({ onClose }: { onClose: () => void }) {
 export function AdminView({ users, stats }: AdminViewProps) {
   const [isPending, startTransition] = useTransition()
   const [showNewUser, setShowNewUser] = useState(false)
-
-  const handleToggle = (userId: string, active: boolean) => {
-    startTransition(async () => {
-      try {
-        await toggleUserActive(userId, active)
-        toast({ title: active ? 'Nutzer aktiviert' : 'Nutzer deaktiviert', variant: 'success' })
-      } catch (err) {
-        toast({ title: String(err), variant: 'error' })
-      }
-    })
-  }
 
   const handleReset = (userId: string) => {
     const pw = prompt('Neues Passwort (min. 8 Zeichen):')

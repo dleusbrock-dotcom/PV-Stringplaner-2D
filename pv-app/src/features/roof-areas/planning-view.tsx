@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Grid3x3, Zap, RotateCcw, Layers } from 'lucide-react'
+import { Plus, Grid3x3, Zap, Layers } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RoofCanvas } from './roof-canvas'
 import { StringPanel } from '../strings/string-panel'

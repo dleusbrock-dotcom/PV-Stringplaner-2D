@@ -1,9 +1,9 @@
 import { Suspense } from 'react'
-import { Plus, Search, Filter } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 import { auth } from '@/lib/auth/config'
 import { prisma } from '@/lib/database/client'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { ProjectCard } from '@/features/projects/project-card'
 import { ProjectListSkeleton } from '@/features/projects/project-list-skeleton'
 

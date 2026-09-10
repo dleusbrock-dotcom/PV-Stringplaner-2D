@@ -30,7 +30,6 @@ export function AddInverterDialog({
     handleSubmit,
     formState: { errors },
   } = useForm<FormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: { mpptCount: 2 },
   })

@@ -33,7 +33,6 @@ export function AddRoofAreaDialog({
     handleSubmit,
     formState: { errors },
   } = useForm<FormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(schema) as Resolver<FormData>,
     defaultValues: { gridRows: 8, gridCols: 12 },
   })

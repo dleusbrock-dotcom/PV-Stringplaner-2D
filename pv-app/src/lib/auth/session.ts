@@ -7,7 +7,6 @@ type AuthenticatedSession = Session & { user: NonNullable<Session['user']> & { i
 export async function getSession(): Promise<AuthenticatedSession> {
   const session = await auth()
   if (!session?.user?.id) throw new UnauthorizedError()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return session as unknown as AuthenticatedSession
 }
 

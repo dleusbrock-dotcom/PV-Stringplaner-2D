@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { FileText, Download, File, ExternalLink, Printer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 
 interface ProjectDocument {
   id: string

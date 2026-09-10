@@ -2,21 +2,13 @@ import { notFound } from 'next/navigation'
 import {
   MapPin, User, Calendar, Phone, Mail,
   Ruler, Sun, AlertTriangle, Camera, ClipboardCheck,
-  Package, FileText, CheckSquare, QrCode, Lock, ChevronRight
+  Package, CheckSquare, ChevronRight
 } from 'lucide-react'
 import Link from 'next/link'
 import { prisma } from '@/lib/database/client'
 import { auth } from '@/lib/auth/config'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { formatDate, formatDateTime } from '@/lib/utils'
-import type { ProjectStatus } from '@prisma/client'
-
-const STATUS_LABELS: Record<ProjectStatus, string> = {
-  DRAFT: 'Entwurf', PLANNING: 'Planung', CONSTRUCTION: 'Baustelle',
-  INSPECTION: 'Abnahme', COMPLETED: 'Abgeschlossen', ARCHIVED: 'Archiviert',
-}
+import { formatDateTime } from '@/lib/utils'
 
 interface PageProps {
   params: Promise<{ id: string }>

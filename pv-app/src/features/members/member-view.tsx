@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Users, UserPlus, Trash2, ChevronDown } from 'lucide-react'
+import { Users, UserPlus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { toast } from '@/components/ui/toaster'
 import { addProjectMember, removeProjectMember, updateMemberRole } from './member-actions'
 
@@ -140,8 +139,6 @@ export function MemberView({ projectId, members, availableUsers, currentUserId }
         <div className="space-y-2">
           {members.map((member) => {
             const isCurrentUser = member.user.id === currentUserId
-            const roleLabel = MEMBER_ROLES.find((r) => r.value === member.role)?.label ?? member.role
-
             return (
               <div
                 key={member.id}
