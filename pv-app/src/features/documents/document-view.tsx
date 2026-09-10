@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { FileText, Download, File } from 'lucide-react'
+import { FileText, Download, File, ExternalLink, Printer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 interface ProjectDocument {
   id: string
@@ -107,9 +108,25 @@ export function DocumentView({ documents, projectId }: DocumentViewProps) {
         </div>
       )}
 
-      <div className="rounded-[var(--radius)] bg-[var(--panel-2)] border border-[var(--line)] p-4 text-sm text-[var(--ink-soft)]">
-        <p className="font-semibold text-[var(--ink)] mb-1">PDF-Generierung</p>
-        <p>Abnahmeprotokoll und Anlagenübersicht werden auf der Abschluss-Seite generiert.</p>
+      {/* PDF Generation */}
+      <div className="rounded-[var(--radius)] bg-[var(--panel)] border border-[var(--line)] p-4">
+        <div className="flex items-center gap-3">
+          <Printer className="w-5 h-5 text-[var(--accent)] shrink-0" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm text-[var(--ink)]">Abnahmeprotokoll generieren</p>
+            <p className="text-xs text-[var(--ink-soft)]">Druckbares PDF mit allen Projektdaten</p>
+          </div>
+          <a
+            href={`/api/projekte/${projectId}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90"
+            style={{ background: 'var(--accent)' }}
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Öffnen
+          </a>
+        </div>
       </div>
     </div>
   )

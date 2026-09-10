@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Ruler, HardHat, Camera, ClipboardCheck,
-  AlertTriangle, Package, FileText, CheckSquare, MapPin, Lock
+  AlertTriangle, Package, FileText, CheckSquare, MapPin, Lock,
+  QrCode, Users
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
@@ -48,8 +49,10 @@ const navItems = [
   { href: '/fotos', label: 'Fotos', icon: Camera },
   { href: '/pruefungen', label: 'Prüfungen', icon: ClipboardCheck },
   { href: '/maengel', label: 'Mängel', icon: AlertTriangle },
+  { href: '/seriennummern', label: 'Seriennr.', icon: QrCode },
   { href: '/material', label: 'Material', icon: Package },
   { href: '/dokumente', label: 'Dokumente', icon: FileText },
+  { href: '/mitglieder', label: 'Team', icon: Users },
   { href: '/abschluss', label: 'Abschluss', icon: CheckSquare },
 ]
 

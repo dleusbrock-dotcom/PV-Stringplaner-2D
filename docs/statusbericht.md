@@ -23,13 +23,29 @@
 - [x] Projekt-Übersicht (Statistiken, Audit-Log)
 - [x] Planung (Canvas-Grid, Strings, Wechselrichter)
 - [x] Baustelle (Checklisten-Übersicht, Quick Actions)
-- [x] Fotos (Kamerazugriff, Kategorie-Ansicht, Grid-Ansicht)
+- [x] Fotos (Kamerazugriff, Kategorie-Ansicht, Grid-Ansicht, **echte Bilder**)
 - [x] Prüfungen (Checklisten aus Templates, Status-Toggle)
 - [x] Mängel (Liste, Neu, Detail, Kommentare, Status)
+- [x] **Seriennummern** (Erfassen, Inline-Bearbeiten, Löschen, Suchen)
 - [x] Material (Soll/Ist-Vergleich)
-- [x] Dokumente (Dateiliste)
+- [x] Dokumente (Dateiliste, **PDF-Abnahmeprotokoll**)
 - [x] Abschluss (Unterschriften, Projektsperre)
+- [x] Projektmitglieder (Team-Verwaltung, Rollen)
+- [x] **Bauteilbibliothek** (CRUD, Kategorien, Spezifikationen)
+- [x] **Admin-Bereich** (Nutzerverwaltung, Statistiken)
 - [x] Einstellungen (Profil, Anwendungsinfo)
+- [x] **QR-Code-Seite** (`/qr/[code]`) – öffentlich zugänglich
+
+### APIs
+- [x] **Foto-Serving** (`/api/photos/[...path]`) – echte Bilder mit Auth
+- [x] **PDF-Generierung** (`/api/projekte/[id]/pdf`) – druckbares Abnahmeprotokoll
+- [x] **Offline-Sync** (`/api/sync`) – Sync-Queue-Verarbeitung
+- [x] Health-Check (`/api/health`)
+
+### Offline / PWA
+- [x] Service Worker (Network-First, Cache-Fallback)
+- [x] **IndexedDB-Schema** (Dexie.js) – syncOps, pendingPhotos, projectCache
+- [x] **Sync-Client** – Queue, Auto-Sync bei Online-Event, Retry-Logik
 
 ### UI-Komponenten
 - [x] Button (Varianten: primary/secondary/ghost/danger/success)
@@ -37,40 +53,76 @@
 - [x] Badge (Varianten: default/primary/success/danger/warning/sun)
 - [x] Card
 - [x] Toast (mit Varianten)
-- [x] App Shell (Top-Nav, Projekt-Navigation)
+- [x] App Shell (Top-Nav mit Bibliothek + Admin, Projekt-Navigation mit 11 Tabs)
+
+### Tests
+- [x] Vitest-Konfiguration (jsdom, globals)
+- [x] Unit-Tests: 34 Tests, alle grün ✅
+  - `utils.test.ts` – 20 Tests
+  - `errors.test.ts` – 14 Tests
 
 ### Daten
 - [x] Prisma Seed (Demo-Nutzer, Demo-Projekt, Checklisten-Templates)
 
-## Ausstehend / Geplant
+### Dokumentation
+- [x] README.md
+- [x] docs/architektur.md
+- [x] docs/statusbericht.md
+- [x] docs/datenmodell.md
+- [x] docs/offline-und-synchronisationskonzept.md
+- [x] docs/sicherheits-und-datenschutzkonzept.md
+- [x] docs/teststrategie.md
+- [x] docs/umsetzungsplan.md
+- [x] docs/entscheidungen-und-annahmen.md
 
-### Hohe Priorität
-- [ ] Seriennummern-Feature
-- [ ] QR-Code-Seite (`/qr/[code]`)
-- [ ] PDF-Generierung (Abnahmeprotokoll)
-- [ ] Foto-Thumbnails (tatsächliche Bilder anzeigen)
-- [ ] Offline-Sync mit IndexedDB/Dexie.js
+## Routen-Übersicht (27 Routen)
 
-### Mittlere Priorität
-- [ ] Bauteilbibliothek-Verwaltung
-- [ ] Projektmitglieder-Verwaltung
-- [ ] E2E-Tests mit Playwright
-- [ ] Unit-Tests mit Vitest
+```
+/ → Redirect zu /projekte
+/login
+/qr/[code]               ← öffentlich
+/projekte
+/projekte/neu
+/projekte/[id]
+/projekte/[id]/planung
+/projekte/[id]/baustelle
+/projekte/[id]/fotos
+/projekte/[id]/pruefungen
+/projekte/[id]/maengel
+/projekte/[id]/maengel/neu
+/projekte/[id]/maengel/[defectId]
+/projekte/[id]/seriennummern
+/projekte/[id]/material
+/projekte/[id]/dokumente
+/projekte/[id]/mitglieder
+/projekte/[id]/abschluss
+/bibliothek
+/admin
+/einstellungen
+/api/auth/[...nextauth]
+/api/health
+/api/photos/[...path]
+/api/projekte/[id]/pdf
+/api/sync
+```
 
-### Niedrige Priorität
-- [ ] Admin-Bereich (Nutzer, Rollen)
+## Offene Backlog-Punkte (niedrige Priorität)
+
+- [ ] Rate-Limiting auf Auth-Endpunkten (Brute-Force-Schutz)
+- [ ] Bild-Komprimierung beim Upload (Sharp.js)
+- [ ] E2E-Tests mit Playwright (kritische User Flows)
+- [ ] CSV/Excel-Export für Materiallisten
 - [ ] Push-Benachrichtigungen
-- [ ] CSV/Excel-Export
+- [ ] `isActive`-Feld auf User (Admin-Deaktivierung)
 
 ## Bekannte Einschränkungen
 
-1. **Foto-Thumbnails**: Die Thumbnails zeigen aktuell einen Platzhalter statt echter Bilder (fehlende Bild-Optimierungs-Pipeline)
-2. **PDF-Generierung**: Noch nicht implementiert (Playwright-Integration ausstehend)
-3. **Offline-Sync**: Service Worker vorhanden, aber IndexedDB-Queue noch nicht implementiert
-4. **Kein aktives DB-Seeding**: Benötigt laufende PostgreSQL-Instanz
+1. **Kein Rate-Limiting**: Auth-Endpunkte haben kein Rate-Limiting (Mitigation: NGINX-Level)
+2. **Kein aktives DB-Seeding**: Benötigt laufende PostgreSQL-Instanz
+3. **Foto-Upload ohne Bildkomprimierung**: Max. 20 MB, keine automatische Komprimierung
 
 ## Technische Schulden
 
-- `@ts-ignore`/`as any` Casts für react-hook-form Resolver-Typen (bekanntes v7 Issue mit Zod v4)
-- Foto-Upload ohne Bildkomprimierung (max. 20 MB)
-- Kein Rate-Limiting auf Auth-Endpunkten
+- `as never` / `as unknown as` Casts für Prisma JSON-Felder und react-hook-form Resolver-Typen
+- Foto-Upload ohne Bildkomprimierung
+- Admin-Passwort-Reset via `prompt()` statt dediziertem Formular

@@ -21,6 +21,8 @@ interface AppShellProps {
 
 const navItems = [
   { href: '/projekte', label: 'Projekte', icon: FolderOpen },
+  { href: '/bibliothek', label: 'Bibliothek', icon: LayoutDashboard },
+  { href: '/admin', label: 'Admin', icon: Settings },
   { href: '/einstellungen', label: 'Einstellungen', icon: Settings },
 ]
 
