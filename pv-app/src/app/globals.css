@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  /* Brand colors matching prototype */
+  --bg: #EDF2F6;
+  --panel: #FFFFFF;
+  --panel-2: #F7F9FB;
+  --line: #D7E0E8;
+  --line-strong: #B9C6D2;
+  --ink: #101B26;
+  --ink-soft: #54636F;
+  --ink-faint: #8695A1;
+  --accent: #0F5C8C;
+  --accent-soft: #E4EEF5;
+  --accent-hover: #0D4F7A;
+  --sun: #E8A23D;
+  --sun-soft: #FDF3E3;
+  --ok: #2F8F5B;
+  --ok-soft: #E5F3EC;
+  --danger: #C0392B;
+  --danger-soft: #FBEAE8;
+  --warning: #D97706;
+  --warning-soft: #FEF3C7;
+  --radius: 10px;
+
+  /* Tailwind compatibility */
+  --background: var(--bg);
+  --foreground: var(--ink);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0E1B26;
+    --panel: #162130;
+    --panel-2: #1A2B3C;
+    --line: #243547;
+    --line-strong: #2F4560;
+    --ink: #E8F0F7;
+    --ink-soft: #8BA5BA;
+    --ink-faint: #5A7A8E;
+    --accent: #1A7DC0;
+    --accent-soft: #0F2D42;
+    --accent-hover: #2290D4;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, "Segoe UI", "IBM Plex Sans", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-faint); }
+
+/* Touch targets */
+button, [role="button"], a, input[type="checkbox"], input[type="radio"] {
+  min-height: 44px;
+}
+button.compact, [role="button"].compact {
+  min-height: unset;
+}
+
+/* Safe area for mobile */
+.safe-bottom { padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+.safe-top { padding-top: max(0px, env(safe-area-inset-top)); }
+
+/* Status colors */
+.status-ok { color: var(--ok); background: var(--ok-soft); }
+.status-danger { color: var(--danger); background: var(--danger-soft); }
+.status-warning { color: var(--warning); background: var(--warning-soft); }
+.status-info { color: var(--accent); background: var(--accent-soft); }

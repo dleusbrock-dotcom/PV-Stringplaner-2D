@@ -1,0 +1,27 @@
+{
+  "name": "PV Stringplaner",
+  "short_name": "PV Planer",
+  "description": "Photovoltaik Projektmanagement – Planung, Dokumentation, Abnahme",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EDF2F6",
+  "theme_color": "#0F5C8C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["productivity", "utilities"],
+  "lang": "de"
+}
