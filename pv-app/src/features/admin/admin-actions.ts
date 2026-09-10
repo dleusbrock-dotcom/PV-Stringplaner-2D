@@ -53,14 +53,16 @@ export async function createUser(formData: FormData) {
 }
 
 export async function toggleUserActive(userId: string, active: boolean) {
-  await requireAdmin()
-  // We track active state via email verification date as convention
-  // (user is "inactive" when emailVerified is null — they exist but can't log in)
-  // A better production approach: add an `isActive` field to User
-  // For now we just record in audit log
+  const session = await requireAdmin()
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { isActive: active },
+  })
+
   await prisma.auditLog.create({
     data: {
-      userId,
+      userId: session.user.id,
       entity: 'User',
       entityId: userId,
       action: active ? 'ACTIVATE' : 'DEACTIVATE',

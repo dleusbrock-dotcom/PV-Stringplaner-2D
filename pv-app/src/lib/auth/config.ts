@@ -63,9 +63,8 @@ export const authConfig: NextAuthConfig = {
         })
 
         if (!user || !user.passwordHash) return null
+        if (!user.isActive) return null  // deactivated accounts cannot log in
 
-        // In production: use bcrypt.compare
-        // For demo: simple comparison (CHANGE IN PRODUCTION)
         const { compare } = await import('bcryptjs')
         const isValid = await compare(password, user.passwordHash)
         if (!isValid) return null

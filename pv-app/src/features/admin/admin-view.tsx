@@ -1,16 +1,17 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Users, Shield, Database, Activity, Plus } from 'lucide-react'
+import { Users, Shield, Database, Activity, Plus, KeyRound, UserCheck, UserX } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/toaster'
-import { createUser, resetUserPassword } from './admin-actions'
+import { createUser, toggleUserActive, resetUserPassword } from './admin-actions'
 
 interface AdminUser {
   id: string
   name: string | null
   email: string | null
+  isActive: boolean
   role: { name: string } | null
   _count: { createdProjects: number; photos: number }
   createdAt: Date
@@ -52,7 +53,7 @@ function NewUserDialog({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="text-xs text-[var(--ink-soft)] mb-1 block">Name</label>
-            <input name="name" required placeholder="Max Mustermann"
+            <input name="name" placeholder="Max Mustermann"
               className="w-full px-3 py-2 rounded-lg border border-[var(--line)] bg-[var(--bg)] text-[var(--ink)] text-sm" />
           </div>
           <div>
@@ -85,17 +86,66 @@ function NewUserDialog({ onClose }: { onClose: () => void }) {
   )
 }
 
-export function AdminView({ users, stats }: AdminViewProps) {
+function ResetPasswordDialog({ userId, onClose }: { userId: string; onClose: () => void }) {
   const [isPending, startTransition] = useTransition()
-  const [showNewUser, setShowNewUser] = useState(false)
 
-  const handleReset = (userId: string) => {
-    const pw = prompt('Neues Passwort (min. 8 Zeichen):')
-    if (!pw || pw.length < 8) return
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const fd = new FormData(e.currentTarget)
+    const pw = fd.get('password') as string
+    const pw2 = fd.get('password2') as string
+    if (pw !== pw2) {
+      toast({ title: 'Passwörter stimmen nicht überein', variant: 'error' })
+      return
+    }
     startTransition(async () => {
       try {
         await resetUserPassword(userId, pw)
         toast({ title: 'Passwort zurückgesetzt', variant: 'success' })
+        onClose()
+      } catch (err) {
+        toast({ title: String(err), variant: 'error' })
+      }
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+      <div className="bg-[var(--panel)] border border-[var(--line)] rounded-[var(--radius)] p-6 w-full max-w-sm shadow-xl">
+        <h2 className="font-bold text-[var(--ink)] mb-4">Passwort zurücksetzen</h2>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-xs text-[var(--ink-soft)] mb-1 block">Neues Passwort *</label>
+            <input name="password" type="password" required minLength={8} placeholder="Mindestens 8 Zeichen"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--line)] bg-[var(--bg)] text-[var(--ink)] text-sm" />
+          </div>
+          <div>
+            <label className="text-xs text-[var(--ink-soft)] mb-1 block">Passwort bestätigen *</label>
+            <input name="password2" type="password" required minLength={8} placeholder="Wiederholen"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--line)] bg-[var(--bg)] text-[var(--ink)] text-sm" />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" variant="primary" size="sm" disabled={isPending}>
+              {isPending ? 'Speichern…' : 'Speichern'}
+            </Button>
+            <Button type="button" variant="secondary" size="sm" onClick={onClose}>Abbrechen</Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+export function AdminView({ users, stats }: AdminViewProps) {
+  const [isPending, startTransition] = useTransition()
+  const [showNewUser, setShowNewUser] = useState(false)
+  const [resetForUserId, setResetForUserId] = useState<string | null>(null)
+
+  const handleToggle = (userId: string, active: boolean) => {
+    startTransition(async () => {
+      try {
+        await toggleUserActive(userId, active)
+        toast({ title: active ? 'Nutzer aktiviert' : 'Nutzer deaktiviert', variant: 'success' })
       } catch (err) {
         toast({ title: String(err), variant: 'error' })
       }
@@ -105,6 +155,9 @@ export function AdminView({ users, stats }: AdminViewProps) {
   return (
     <div className="p-4 max-w-4xl mx-auto">
       {showNewUser && <NewUserDialog onClose={() => setShowNewUser(false)} />}
+      {resetForUserId && (
+        <ResetPasswordDialog userId={resetForUserId} onClose={() => setResetForUserId(null)} />
+      )}
 
       <h1 className="font-bold text-[var(--ink)] text-xl mb-6">Administration</h1>
 
@@ -137,18 +190,21 @@ export function AdminView({ users, stats }: AdminViewProps) {
         {users.map((user) => (
           <div
             key={user.id}
-            className="bg-[var(--panel)] border border-[var(--line)] rounded-[var(--radius)] p-3 flex items-center gap-3"
+            className={`bg-[var(--panel)] border border-[var(--line)] rounded-[var(--radius)] p-3 flex items-center gap-3 ${!user.isActive ? 'opacity-60' : ''}`}
           >
             <div className="w-9 h-9 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-sm font-bold shrink-0">
               {(user.name ?? user.email ?? '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold text-sm text-[var(--ink)] truncate">{user.name ?? user.email}</span>
                 {user.role && (
                   <Badge variant={user.role.name === 'Admin' ? 'danger' : 'default'}>
                     {user.role.name}
                   </Badge>
+                )}
+                {!user.isActive && (
+                  <Badge variant="warning">Deaktiviert</Badge>
                 )}
               </div>
               <div className="text-xs text-[var(--ink-faint)]">
@@ -157,12 +213,23 @@ export function AdminView({ users, stats }: AdminViewProps) {
             </div>
             <div className="flex items-center gap-1 shrink-0">
               <button
-                onClick={() => handleReset(user.id)}
+                onClick={() => setResetForUserId(user.id)}
                 disabled={isPending}
-                className="p-1.5 rounded text-[10px] text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)] transition-colors"
+                className="p-1.5 rounded text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)] transition-colors"
                 title="Passwort zurücksetzen"
               >
-                <Shield className="w-3.5 h-3.5" />
+                <KeyRound className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleToggle(user.id, !user.isActive)}
+                disabled={isPending}
+                className="p-1.5 rounded text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line)] transition-colors"
+                title={user.isActive ? 'Nutzer deaktivieren' : 'Nutzer aktivieren'}
+              >
+                {user.isActive
+                  ? <UserX className="w-3.5 h-3.5 text-[var(--danger)]" />
+                  : <UserCheck className="w-3.5 h-3.5 text-[var(--ok)]" />
+                }
               </button>
             </div>
           </div>
