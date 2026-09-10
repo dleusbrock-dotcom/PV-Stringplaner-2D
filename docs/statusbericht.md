@@ -15,6 +15,8 @@
 - [x] Docker Compose (PostgreSQL)
 - [x] CSS Design System (CSS Custom Properties, Dark Mode)
 - [x] PWA Manifest + Service Worker
+- [x] **Rate-Limiting** auf Auth-Endpunkten (in-memory, 10/IP + 5/E-Mail pro 15 min)
+- [x] **CI/CD Pipeline** (GitHub Actions: typecheck → lint → test → build)
 
 ### Seiten & Features
 - [x] Login-Seite
@@ -32,7 +34,7 @@
 - [x] Abschluss (Unterschriften, Projektsperre)
 - [x] Projektmitglieder (Team-Verwaltung, Rollen)
 - [x] **Bauteilbibliothek** (CRUD, Kategorien, Spezifikationen)
-- [x] **Admin-Bereich** (Nutzerverwaltung, Statistiken)
+- [x] **Admin-Bereich** (Nutzerverwaltung, Aktivierung/Deaktivierung, Passwort-Reset-Modal, Statistiken)
 - [x] Einstellungen (Profil, Anwendungsinfo)
 - [x] **QR-Code-Seite** (`/qr/[code]`) – öffentlich zugänglich
 
@@ -108,16 +110,14 @@
 
 ## Offene Backlog-Punkte (niedrige Priorität)
 
-- [ ] Rate-Limiting auf Auth-Endpunkten (Brute-Force-Schutz)
 - [ ] Bild-Komprimierung beim Upload (Sharp.js)
 - [ ] E2E-Tests mit Playwright (kritische User Flows)
 - [ ] CSV/Excel-Export für Materiallisten
 - [ ] Push-Benachrichtigungen
-- [ ] `isActive`-Feld auf User (Admin-Deaktivierung)
 
 ## Bekannte Einschränkungen
 
-1. **Kein Rate-Limiting**: Auth-Endpunkte haben kein Rate-Limiting (Mitigation: NGINX-Level)
+1. **Rate-Limiting in-memory**: Funktioniert nur auf Einzelinstanz. Bei Horizontal Scaling: Redis-Backend erforderlich (`RateLimiterRedis` statt `RateLimiterMemory`)
 2. **Kein aktives DB-Seeding**: Benötigt laufende PostgreSQL-Instanz
 3. **Foto-Upload ohne Bildkomprimierung**: Max. 20 MB, keine automatische Komprimierung
 
@@ -125,4 +125,3 @@
 
 - `as never` / `as unknown as` Casts für Prisma JSON-Felder und react-hook-form Resolver-Typen
 - Foto-Upload ohne Bildkomprimierung
-- Admin-Passwort-Reset via `prompt()` statt dediziertem Formular

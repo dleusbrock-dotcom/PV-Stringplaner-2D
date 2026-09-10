@@ -29,6 +29,18 @@
 - `/` – Root-Redirect
 - `/qr/*` – QR-Code-Seite (bewusst öffentlich für Baustellen-Scanning)
 
+### Rate-Limiting
+
+`src/lib/rate-limit.ts` schützt `/api/auth/callback/credentials` (Login-Endpunkt):
+
+| Schlüssel | Limit | Fenster |
+|-----------|-------|---------|
+| IP-Adresse | 10 Versuche | 15 Minuten |
+| E-Mail-Adresse | 5 Versuche | 15 Minuten |
+
+Bei Überschreitung: HTTP 429 mit `Retry-After`-Header.  
+Backend: `RateLimiterMemory` (in-process). Bei Horizontal Scaling: auf `RateLimiterRedis` umstellen.
+
 ## Autorisierung
 
 ### Rollenbasiertes Zugangssystem (RBAC)
@@ -40,6 +52,10 @@
 | Monteur | Baustellen-Dokumentation |
 
 Admin-Seite (`/admin`) prüft zusätzlich zur Session die Rolle des eingeloggten Nutzers.
+
+### Benutzer-Deaktivierung
+
+`User.isActive` (Boolean, default `true`) — deaktivierte Nutzer werden beim Login abgewiesen, bevor das Passwort geprüft wird. Admin kann Nutzer über die `/admin`-Seite aktivieren/deaktivieren.
 
 ### Server Actions
 
@@ -74,14 +90,13 @@ NEXTAUTH_URL=https://...       # Öffentliche URL
 
 ## Bekannte Schwachstellen / Technische Schulden
 
-| Schwachstelle | Risiko | Maßnahme |
-|---------------|--------|----------|
-| Kein Rate-Limiting auf `/api/auth` | Brute-Force-Angriffe möglich | rate-limiter-flexible oder nginx-Limit |
+| Schwachstelle | Risiko | Status |
+|---------------|--------|--------|
+| Rate-Limiting nur in-memory | Kein Schutz bei mehreren Instanzen | Mitigation: Redis-Backend |
 | Keine CSRF-Tokens bei Form-Submissions | Niedrig (SameSite-Cookies) | Explizite CSRF-Middleware |
 | Foto-Upload ohne Virenscan | Malicious Files | ClamAV-Integration |
 | Keine Bild-Komprimierung | Hoher Speicherbedarf | Sharp.js-Pipeline |
 | `as never` / `as unknown` Casts | TypeScript-Sicherheit umgangen | Prisma v6 Migration |
-| Admin-Login via `prompt()` für Passwort-Reset | UX + XSS-Risiko | Dediziertes Formular |
 
 ## Datenschutz (DSGVO)
 
