@@ -1,0 +1,853 @@
+// Prisma Schema – PV-Stringplaner 2D
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==============================
+// Auth
+// ==============================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?
+  roleId        String?
+  role          Role?     @relation(fields: [roleId], references: [id])
+  isActive      Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Project relations
+  createdProjects  Project[] @relation("ProjectCreator")
+  managedProjects  ProjectMember[]
+  
+  // Audit
+  auditLogs       AuditLog[]
+  photos          Photo[]
+  checklistItems  ChecklistItem[]
+  signatures      Signature[]
+  approvals       Approval[]
+  createdDefects  Defect[]        @relation("DefectCreator")
+  resolvedDefects Defect[]        @relation("DefectResolver")
+  defectComments  DefectComment[]
+  syncOps         SyncOperation[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String @id @default(cuid())
+  name        String @unique
+  description String?
+  
+  users       User[]
+  permissions RolePermission[]
+  
+  @@map("roles")
+}
+
+model Permission {
+  id      String @id @default(cuid())
+  action  String // e.g. "project:read", "project:write"
+  subject String // e.g. "Project", "Photo"
+  
+  roles   RolePermission[]
+  
+  @@unique([action, subject])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ==============================
+// Customer & Contact
+// ==============================
+
+model Customer {
+  id          String  @id @default(cuid())
+  name        String
+  companyName String?
+  email       String?
+  phone       String?
+  notes       String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+  
+  contacts  Contact[]
+  projects  Project[]
+  
+  @@map("customers")
+}
+
+model Contact {
+  id         String  @id @default(cuid())
+  customerId String
+  firstName  String
+  lastName   String
+  role       String?
+  email      String?
+  phone      String?
+  
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  projects Project[]
+  
+  @@map("contacts")
+}
+
+// ==============================
+// Site
+// ==============================
+
+model Site {
+  id          String  @id @default(cuid())
+  street      String
+  houseNumber String?
+  postalCode  String
+  city        String
+  country     String  @default("DE")
+  latitude    Float?
+  longitude   Float?
+  
+  projects Project[]
+  
+  @@map("sites")
+}
+
+// ==============================
+// Project
+// ==============================
+
+
+model Project {
+  id          String        @id @default(cuid())
+  number      String        @unique
+  name        String
+  description String?
+  status      String @default("DRAFT")
+  
+  customerId String
+  contactId  String?
+  siteId     String
+  createdById String
+  
+  customer  Customer  @relation(fields: [customerId], references: [id])
+  contact   Contact?  @relation(fields: [contactId], references: [id])
+  site      Site      @relation(fields: [siteId], references: [id])
+  createdBy User      @relation("ProjectCreator", fields: [createdById], references: [id])
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  lockedAt    DateTime?
+  lockedById  String?
+  
+  // QR Code
+  qrCode      String?  @unique @default(cuid())
+  
+  // Relations
+  members       ProjectMember[]
+  roofAreas     RoofArea[]
+  inverters     InverterInstance[]
+  batteries     BatteryInstance[]
+  components    ProjectComponent[]
+  checklists    Checklist[]
+  photos        Photo[]
+  materials     ProjectMaterial[]
+  defects       Defect[]
+  approvals     Approval[]
+  signatures    Signature[]
+  documents     ProjectDocument[]
+  versions      ProjectVersion[]
+  auditLogs     AuditLog[]
+  syncOps       SyncOperation[]
+  
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String @id @default(cuid())
+  projectId String
+  userId    String
+  role      String // "manager", "planner", "technician", "supervisor"
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+// ==============================
+// Component Library
+// ==============================
+
+
+model ComponentLibraryItem {
+  id           String            @id @default(cuid())
+  category     String
+  manufacturer String
+  model        String
+  version      String            @default("1")
+  isActive     Boolean           @default(true)
+  
+  // Module specific
+  peakPowerWp    Float?
+  voltageVoc     Float?
+  voltageVmp     Float?
+  currentIsc     Float?
+  currentImp     Float?
+  efficiency     Float?
+  dimensions     String?  // {width, height, depth} in mm
+  weight         Float? // kg
+  
+  // Inverter specific
+  maxPowerW      Float?
+  mpptCount      Int?
+  maxStringPerMppt Int?
+  minVoltage     Float?
+  maxVoltage     Float?
+  maxCurrentPerMppt Float?
+  
+  // Battery specific  
+  capacityKwh    Float?
+  maxChargeW     Float?
+  maxDischargeW  Float?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  snapshots      ComponentSnapshot[]
+  placements     ModulePlacement[]
+  
+  @@unique([manufacturer, model, version])
+  @@map("component_library_items")
+}
+
+model ComponentSnapshot {
+  id         String @id @default(cuid())
+  libraryId  String
+  projectId  String? // null = global snapshot
+  snapshotAt DateTime @default(now())
+  data       String     // Complete component data at snapshot time
+  
+  libraryItem ComponentLibraryItem @relation(fields: [libraryId], references: [id])
+  
+  @@map("component_snapshots")
+}
+
+model ProjectComponent {
+  id          String @id @default(cuid())
+  projectId   String
+  libraryId   String
+  snapshotData String  // Frozen copy of component data
+  quantity    Int    @default(1)
+  notes       String?
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  serialNumbers SerialNumber[]
+  
+  @@map("project_components")
+}
+
+// ==============================
+// Roof Areas
+// ==============================
+
+model RoofArea {
+  id          String  @id @default(cuid())
+  projectId   String
+  name        String
+  orientation Float?  // degrees from North (0-360)
+  tiltAngle   Float?  // degrees (0-90)
+  
+  // Grid configuration
+  gridRows    Int     @default(10)
+  gridCols    Int     @default(10)
+  cellWidth   Float   @default(1.0)  // meters
+  cellHeight  Float   @default(1.7)  // meters
+  
+  // Background image
+  backgroundImageId String?
+  
+  // Plan vs Actual
+  planModuleModelId String?
+  
+  sortOrder   Int     @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdById String?
+  
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  obstacles  RoofObstacle[]
+  placements ModulePlacement[]
+  
+  @@map("roof_areas")
+}
+
+
+model RoofObstacle {
+  id         String       @id @default(cuid())
+  roofAreaId String
+  type       String
+  label      String?
+  
+  // Position in grid cells
+  col        Float
+  row        Float
+  width      Float @default(1)
+  height     Float @default(1)
+  rotation   Float @default(0)
+  
+  createdAt DateTime @default(now())
+  
+  roofArea RoofArea @relation(fields: [roofAreaId], references: [id], onDelete: Cascade)
+  
+  @@map("roof_obstacles")
+}
+
+// ==============================
+// Module Placements & Strings
+// ==============================
+
+model ModulePlacement {
+  id           String  @id @default(cuid())
+  roofAreaId   String
+  libraryItemId String?
+  
+  // Position
+  col          Int
+  row          Int
+  
+  // Plan vs Actual
+  isPlan       Boolean @default(true)
+  isInstalled  Boolean @default(false)
+  isEnabled    Boolean @default(true)
+  
+  // String assignment
+  stringAssignment StringModuleAssignment?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  roofArea    RoofArea               @relation(fields: [roofAreaId], references: [id], onDelete: Cascade)
+  libraryItem ComponentLibraryItem?  @relation(fields: [libraryItemId], references: [id])
+  
+  @@unique([roofAreaId, col, row, isPlan])
+  @@map("module_placements")
+}
+
+model StringPlan {
+  id        String @id @default(cuid())
+  projectId String
+  
+  // From inverter MPPT assignment
+  inverterInstanceId String?
+  mpptInputId        String?
+  
+  name      String
+  color     String  // hex color
+  sortOrder Int     @default(0)
+  
+  // Electrical
+  polarity      String @default("positive") // "positive" | "negative"
+  cableStart    String? // label for start point
+  cableEnd      String? // label for end point
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  inverterInstance InverterInstance? @relation(fields: [inverterInstanceId], references: [id])
+  mpptInput        MPPTInput?        @relation(fields: [mpptInputId], references: [id])
+  modules          StringModuleAssignment[]
+  
+  @@map("string_plans")
+}
+
+model StringModuleAssignment {
+  id              String @id @default(cuid())
+  stringPlanId    String
+  modulePlacementId String @unique
+  sortOrder       Int    // order within string
+  label           String // e.g. "S1-M01"
+  
+  stringPlan    StringPlan     @relation(fields: [stringPlanId], references: [id], onDelete: Cascade)
+  modulePlacement ModulePlacement @relation(fields: [modulePlacementId], references: [id], onDelete: Cascade)
+  
+  @@map("string_module_assignments")
+}
+
+// ==============================
+// Inverters & MPPT
+// ==============================
+
+model InverterInstance {
+  id           String @id @default(cuid())
+  projectId    String
+  libraryItemId String?
+  snapshotData String?  // Frozen copy
+  
+  label        String
+  serialNumber String?
+  location     String?
+  
+  createdAt DateTime @default(now())
+  
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  mpptInputs   MPPTInput[]
+  stringPlans  StringPlan[]
+  
+  @@map("inverter_instances")
+}
+
+model MPPTInput {
+  id                 String @id @default(cuid())
+  inverterInstanceId String
+  inputNumber        Int
+  label              String?
+  maxStrings         Int    @default(1)
+  
+  inverterInstance InverterInstance @relation(fields: [inverterInstanceId], references: [id], onDelete: Cascade)
+  stringPlans      StringPlan[]
+  
+  @@unique([inverterInstanceId, inputNumber])
+  @@map("mppt_inputs")
+}
+
+model BatteryInstance {
+  id           String @id @default(cuid())
+  projectId    String
+  libraryItemId String?
+  snapshotData String?
+  
+  label        String
+  serialNumber String?
+  location     String?
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@map("battery_instances")
+}
+
+// ==============================
+// Checklists
+// ==============================
+
+
+model ChecklistTemplate {
+  id       String @id @default(cuid())
+  name     String
+  category String
+  sortOrder Int   @default(0)
+  
+  items       ChecklistTemplateItem[]
+  checklists  Checklist[]
+  
+  @@map("checklist_templates")
+}
+
+model ChecklistTemplateItem {
+  id         String @id @default(cuid())
+  templateId String
+  text       String
+  isRequired Boolean @default(true)
+  sortOrder  Int    @default(0)
+  
+  template ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  @@map("checklist_template_items")
+}
+
+model Checklist {
+  id         String @id @default(cuid())
+  projectId  String
+  templateId String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  project  Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template ChecklistTemplate @relation(fields: [templateId], references: [id])
+  items    ChecklistItem[]
+  
+  @@unique([projectId, templateId])
+  @@map("checklists")
+}
+
+model ChecklistItem {
+  id           String              @id @default(cuid())
+  checklistId  String
+  templateItemId String?
+  text         String
+  status       String @default("OPEN")
+  comment      String?
+  naReason     String?
+  completedAt  DateTime?
+  completedById String?
+  
+  photoId      String?
+  
+  checklist    Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  completedBy  User?     @relation(fields: [completedById], references: [id])
+  
+  @@map("checklist_items")
+}
+
+// ==============================
+// Photos
+// ==============================
+
+model Photo {
+  id          String  @id @default(cuid())
+  projectId   String
+  userId      String
+  
+  filename    String
+  storagePath String
+  thumbnailPath String?
+  mimeType    String
+  sizeBytes   Int?
+  width       Int?
+  height      Int?
+  
+  category    String  // "before_installation", "roof_view", etc.
+  caption     String?
+  
+  // Context assignment
+  roofAreaId       String?
+  stringPlanId     String?
+  defectId         String?
+  checklistItemId  String?
+  
+  // Metadata
+  takenAt   DateTime?
+  latitude  Float?
+  longitude Float?
+  
+  createdAt DateTime @default(now())
+  
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id])
+  defect  Defect?  @relation("defect_photos", fields: [defectId], references: [id])
+
+  @@map("photos")
+}
+
+// ==============================
+// Serial Numbers
+// ==============================
+
+model SerialNumber {
+  id                 String @id @default(cuid())
+  projectId          String
+  projectComponentId String?
+  
+  serialNumber       String
+  position           String? // location description
+  typeplatePhotoId   String?
+  
+  recordedAt    DateTime @default(now())
+  recordedById  String?
+  
+  projectComponent ProjectComponent? @relation(fields: [projectComponentId], references: [id])
+  
+  @@map("serial_numbers")
+}
+
+// ==============================
+// Materials
+// ==============================
+
+model MaterialItem {
+  id          String @id @default(cuid())
+  name        String
+  unit        String // "Stk", "m", "kg", etc.
+  category    String?
+  description String?
+  
+  projectMaterials ProjectMaterial[]
+  
+  @@map("material_items")
+}
+
+model ProjectMaterial {
+  id             String @id @default(cuid())
+  projectId      String
+  materialItemId String
+  
+  plannedQty     Float @default(0)
+  actualQty      Float @default(0)
+  
+  notes          String?
+  
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  materialItem MaterialItem @relation(fields: [materialItemId], references: [id])
+  
+  @@unique([projectId, materialItemId])
+  @@map("project_materials")
+}
+
+// ==============================
+// Defects
+// ==============================
+
+
+
+model Defect {
+  id          String        @id @default(cuid())
+  projectId   String
+  createdById String
+
+  title       String
+  description String?
+  category    String?
+  location    String?
+  priority    String @default("MEDIUM")
+  status      String   @default("OPEN")
+
+  // Location reference
+  roofAreaId  String?
+  position    String?  // {col, row} on grid
+
+  // Assignment
+  assignedToId String?
+  dueDate      DateTime?
+
+  resolvedAt   DateTime?
+  resolvedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy  User     @relation("DefectCreator", fields: [createdById], references: [id])
+  resolvedBy User?    @relation("DefectResolver", fields: [resolvedById], references: [id])
+
+  photos    Photo[] @relation("defect_photos")
+  comments  DefectComment[]
+
+  @@map("defects")
+}
+
+model DefectComment {
+  id        String @id @default(cuid())
+  defectId  String
+  userId    String
+  text      String
+  createdAt DateTime @default(now())
+
+  defect Defect @relation(fields: [defectId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@map("defect_comments")
+}
+
+// ==============================
+// Approvals & Signatures
+// ==============================
+
+model Approval {
+  id        String @id @default(cuid())
+  projectId String
+  userId    String
+  
+  type      String // "technician", "supervisor", "customer"
+  status    String @default("pending") // "pending", "approved", "invalidated"
+  
+  documentVersion String?
+  
+  approvedAt   DateTime?
+  invalidatedAt DateTime?
+  invalidationReason String?
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  
+  signatures Signature[]
+  
+  @@map("approvals")
+}
+
+model Signature {
+  id         String @id @default(cuid())
+  projectId  String
+  approvalId String?
+  userId     String?
+  
+  signerName  String
+  signerRole  String
+  signatureData String // SVG or base64 PNG
+  
+  documentVersion String?
+  confirmedAt DateTime @default(now())
+  
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id])
+  approval Approval? @relation(fields: [approvalId], references: [id])
+  
+  @@map("signatures")
+}
+
+// ==============================
+// Documents
+// ==============================
+
+model ProjectDocument {
+  id        String @id @default(cuid())
+  projectId String
+  
+  type      String // "pdf_report", "plan", etc.
+  version   Int    @default(1)
+  isDraft   Boolean @default(true)
+  
+  filename    String
+  storagePath String
+  sizeBytes   Int?
+  
+  generatedAt DateTime @default(now())
+  generatedById String?
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@map("project_documents")
+}
+
+// ==============================
+// Synchronization
+// ==============================
+
+
+model SyncOperation {
+  id        String @id @default(cuid())
+  projectId String
+  userId    String
+  
+  operation String // "create", "update", "delete"
+  entity    String // entity type
+  entityId  String
+  payload   String
+  
+  status    String @default("PENDING")
+  attempts  Int        @default(0)
+  lastError String?
+  
+  createdAt  DateTime @default(now())
+  syncedAt   DateTime?
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+  
+  @@map("sync_operations")
+}
+
+// ==============================
+// Audit Log
+// ==============================
+
+model AuditLog {
+  id        String @id @default(cuid())
+  projectId String?
+  userId    String
+  
+  entity    String
+  entityId  String
+  action    String
+  changes   String?
+  reason    String?
+  
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+  
+  project Project? @relation(fields: [projectId], references: [id])
+  user    User     @relation(fields: [userId], references: [id])
+  
+  @@map("audit_logs")
+}
+
+// ==============================
+// Project Versions
+// ==============================
+
+model ProjectVersion {
+  id        String @id @default(cuid())
+  projectId String
+  
+  version   Int
+  snapshot  String   // Complete project snapshot
+  note      String?
+  
+  createdAt   DateTime @default(now())
+  createdById String?
+  
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, version])
+  @@map("project_versions")
+}

@@ -24,6 +24,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      DATABASE_PROVIDER: postgresql
       DATABASE_URL: postgresql://pvapp:pvapp@db:5432/pvapp
       NEXTAUTH_URL: http://localhost:3000
       # Demo-Secret – nur für lokalen Test geeignet

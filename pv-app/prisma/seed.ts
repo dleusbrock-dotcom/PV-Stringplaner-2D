@@ -1,4 +1,4 @@
-import { PrismaClient, ProjectStatus } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 
 const prisma = new PrismaClient()
@@ -82,7 +82,7 @@ async function main() {
       currentIsc: 10.4,
       currentImp: 9.95,
       efficiency: 20.8,
-      dimensions: { width: 1772, height: 1133, depth: 35 },
+      dimensions: JSON.stringify({ width: 1772, height: 1133, depth: 35 }),
       weight: 21.5,
     },
   })
@@ -243,7 +243,7 @@ async function main() {
         number: 'PV-202601-DEMO',
         name: 'Demo – Einfamilienhaus München',
         description: 'Demo-Projekt zur Vorführung aller Funktionen',
-        status: 'PLANNING' as ProjectStatus,
+        status: 'PLANNING',
         customerId: customer.id,
         contactId: contact.id,
         siteId: site.id,
@@ -360,7 +360,7 @@ async function main() {
         entity: 'Project',
         entityId: project.id,
         action: 'create',
-        changes: { name: project.name },
+        changes: JSON.stringify({ name: project.name }),
       },
     })
 
