@@ -1,0 +1,33 @@
+name: pv-doku CI
+
+on:
+  push:
+    paths: ["pv-doku/**", ".github/workflows/pv-doku-ci.yml"]
+  pull_request:
+    paths: ["pv-doku/**", ".github/workflows/pv-doku-ci.yml"]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pv-doku
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: pv-doku/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Datenbanktests (Migrationen, RLS, Sperre, Statuswechsel)
+        run: npm run test:db
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: http://localhost:54321
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy
+          NEXT_TELEMETRY_DISABLED: "1"

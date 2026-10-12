@@ -1,0 +1,18 @@
+# Minimale Supabase-CLI-Konfiguration für lokale Entwicklung (`supabase start`).
+project_id = "pv-doku"
+
+[api]
+schemas = ["public"]
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/confirm"]
+# Kein öffentliches Registrieren – Benutzer werden durch Administratoren eingeladen (F-001)
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+double_confirm_changes = true
+
+[storage]
+file_size_limit = "25MiB"
