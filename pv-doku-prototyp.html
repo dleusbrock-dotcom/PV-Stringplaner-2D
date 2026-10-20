@@ -1,0 +1,1123 @@
+<title>PV-Doku Prototyp</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: Arbeitsblatt-Logik – feste Kopfleiste, Schrittleiste, darunter eine Spalte mit Karten; Raster als zentrales Werkstück */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-2: #e4e9ef;
+  --ink: #16212c;
+  --ink-soft: #536273;
+  --line: #cbd4de;
+  --accent: #1f4fbf;      /* Modulblau */
+  --accent-soft: #dfe8fb;
+  --accent-ink: #ffffff;
+  --mark: #e8a317;        /* Auswahl / Markierung */
+  --ok: #17803d; --ok-soft: #dcf3e3;
+  --warn: #9a6200; --warn-soft: #fbefd2;
+  --err: #b42318; --err-soft: #fbe1de;
+  --top: #14202b; --top-ink: #f2f5f8;
+  --cell-empty: #ffffff; --cell-line: #aab7c5;
+  --obst: #cfd5dc; --obst-2: #e3e7ec;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f151c; --surface: #18212b; --surface-2: #222d39; --ink: #e6ecf2; --ink-soft: #9aa9b8; --line: #33414f;
+  --accent: #6d97ff; --accent-soft: #1d2b4a; --accent-ink: #0b1220; --mark: #f0b53a;
+  --ok: #5cc985; --ok-soft: #173325; --warn: #e8b54d; --warn-soft: #3a2e14; --err: #ff8a7a; --err-soft: #3d1c19;
+  --top: #0a0f14; --top-ink: #e6ecf2; --cell-empty: #1c2631; --cell-line: #4a5a6b; --obst: #4a5561; --obst-2: #3a434d;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f151c; --surface: #18212b; --surface-2: #222d39; --ink: #e6ecf2; --ink-soft: #9aa9b8; --line: #33414f;
+  --accent: #6d97ff; --accent-soft: #1d2b4a; --accent-ink: #0b1220; --mark: #f0b53a;
+  --ok: #5cc985; --ok-soft: #173325; --warn: #e8b54d; --warn-soft: #3a2e14; --err: #ff8a7a; --err-soft: #3d1c19;
+  --top: #0a0f14; --top-ink: #e6ecf2; --cell-empty: #1c2631; --cell-line: #4a5a6b; --obst: #4a5561; --obst-2: #3a434d;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--font-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--top); }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: 1.5rem; } h2 { font-size: 1.2rem; } h3 { font-size: 1.02rem; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--mark); outline-offset: 2px; }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-soft); } .small { font-size: 0.85rem; }
+
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--top); color: var(--top-ink);
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.top-in { max-width: 1120px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.brand { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: 0.02em; background: none; border: 0; color: inherit; cursor: pointer; padding: 4px 0; }
+.brand small { font-family: var(--font-body); font-weight: 500; font-size: 0.72rem; opacity: 0.7; margin-left: 6px; letter-spacing: 0.06em; text-transform: uppercase; }
+.top nav { display: flex; gap: 4px; }
+.top nav button { background: none; border: 1px solid transparent; color: inherit; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+.top nav button[aria-current="page"] { border-color: rgba(255,255,255,0.35); }
+.top .spacer { flex: 1; }
+.top label { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; opacity: 0.9; }
+.top select { background: transparent; border: 1px solid rgba(255,255,255,0.35); color: inherit; border-radius: 6px; padding: 4px 6px; }
+.top select option { color: #111; }
+.savestate { font-size: 0.78rem; opacity: 0.8; min-width: 7em; text-align: right; }
+.savestate.err { color: #ffb4a8; opacity: 1; font-weight: 600; }
+
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 18px 60px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.between { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.g2, .g3 { display: grid; gap: 12px 16px; grid-template-columns: 1fr; }
+@media (min-width: 700px) { .g2 { grid-template-columns: 1fr 1fr; } .g3 { grid-template-columns: repeat(3, 1fr); } }
+.span { grid-column: 1 / -1; }
+
+.field { display: grid; gap: 4px; font-size: 0.86rem; font-weight: 600; color: var(--ink-soft); min-width: 0; }
+.field .req { color: var(--err); }
+input, select, textarea { background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 10px 11px; min-height: 44px; width: 100%; color: var(--ink); }
+textarea { min-height: 76px; resize: vertical; }
+input:disabled, select:disabled, textarea:disabled { background: var(--surface-2); color: var(--ink-soft); }
+input[type="checkbox"], input[type="radio"] { width: 20px; height: 20px; min-height: 0; accent-color: var(--accent); }
+.check { display: inline-flex; gap: 8px; align-items: center; font-weight: 500; color: var(--ink); min-height: 40px; font-size: 0.95rem; }
+.miss { border-color: var(--err); background: var(--err-soft); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 14px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 600; cursor: pointer; }
+.btn:hover { background: var(--surface-2); }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { color: var(--err); }
+.btn.sm { min-height: 36px; padding: 5px 10px; font-size: 0.88rem; }
+.btn.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; background: var(--surface-2); color: var(--ink-soft); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.warn { background: var(--warn-soft); color: var(--warn); } .pill.err { background: var(--err-soft); color: var(--err); }
+.pill.st-zur_pruefung { background: var(--accent-soft); color: var(--accent); }
+.pill.st-abgeschlossen { background: var(--ok-soft); color: var(--ok); }
+.pill.st-nacharbeit { background: var(--warn-soft); color: var(--warn); }
+.note { padding: 10px 12px; border-radius: 7px; border: 1px solid var(--line); background: var(--surface-2); font-size: 0.9rem; }
+.note.err { background: var(--err-soft); border-color: transparent; color: var(--err); }
+.note.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); }
+.note.ok { background: var(--ok-soft); border-color: transparent; color: var(--ok); }
+.note.info { background: var(--accent-soft); border-color: transparent; color: var(--accent); }
+
+/* Projektliste */
+.plist { display: grid; gap: 8px; }
+.pitem { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; text-align: left; width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; cursor: pointer; color: var(--ink); }
+.pitem:hover { border-color: var(--accent); }
+.pitem .t { font-weight: 600; min-width: 0; }
+.pitem .s { grid-column: 1 / -1; color: var(--ink-soft); font-size: 0.86rem; }
+
+/* Projektkopf und Schritte */
+.phead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+.phead h1 { font-size: 1.35rem; }
+.kpis { display: flex; flex-wrap: wrap; gap: 8px; }
+.kpi { background: var(--surface-2); border-radius: 7px; padding: 6px 12px; min-width: 7.5rem; }
+.kpi b { display: block; font: 600 1.15rem var(--font-mono); font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 0.76rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
+.steps { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.steps button { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 42px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+.steps button[aria-current="step"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); }
+.dot.err { background: var(--err); } .dot.warn { background: var(--mark); }
+
+/* Raster */
+.tools { display: flex; flex-wrap: wrap; gap: 6px; }
+.grid-scroll { overflow-x: auto; padding: 4px 0 8px; }
+.pv-grid { display: inline-grid; gap: 3px; user-select: none; -webkit-user-select: none; touch-action: none; padding: 2px; }
+.pv-grid .ax { font: 500 0.7rem var(--font-mono); color: var(--ink-soft); display: flex; align-items: center; justify-content: center; }
+.cell { border: 1.5px dashed var(--cell-line); border-radius: 3px; background: var(--cell-empty); padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; overflow: hidden; font: 600 0.6rem var(--font-mono); color: #fff; }
+.cell.modul { border: 1.5px solid rgba(0,0,0,0.45); background-color: var(--accent); background-image: linear-gradient(transparent 47%, rgba(255,255,255,0.28) 47%, rgba(255,255,255,0.28) 53%, transparent 53%); }
+.cell.hindernis { border: 1.5px solid var(--ink-soft); color: var(--ink); background: repeating-linear-gradient(45deg, var(--obst), var(--obst) 4px, var(--obst-2) 4px, var(--obst-2) 8px); }
+.cell.gesperrt { border: 1.5px solid var(--err); color: var(--err); background: repeating-linear-gradient(-45deg, var(--err-soft), var(--err-soft) 4px, var(--cell-empty) 4px, var(--cell-empty) 8px); }
+.cell.sel { outline: 3px solid var(--mark); outline-offset: -2px; }
+.cell span { padding: 0 2px; text-align: center; line-height: 1; word-break: break-word; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.82rem; color: var(--ink-soft); }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; border: 1px solid rgba(0,0,0,0.25); }
+.selbar { background: var(--warn-soft); border-radius: 7px; padding: 10px 12px; display: grid; gap: 8px; }
+.orient { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; max-width: 360px; }
+.swatch { width: 18px; height: 18px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,0.3); flex: 0 0 auto; }
+
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-soft); font-weight: 600; }
+td input, td select { min-height: 36px; padding: 5px 7px; }
+
+.item { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.issues { list-style: none; margin: 0; padding: 0; display: grid; }
+.issues li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.issues li:last-child { border-bottom: 0; }
+.issues li span.m { flex: 1; min-width: 0; }
+.linkbtn { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; font-weight: 600; white-space: nowrap; }
+
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.photo { border: 1px solid var(--line); border-radius: 7px; overflow: hidden; background: var(--surface); display: grid; }
+.photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: var(--surface-2); max-width: 100%; }
+.photo .m { padding: 6px; display: grid; gap: 5px; }
+.photo .m input, .photo .m select { min-height: 34px; padding: 4px 6px; font-size: 0.85rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { border: 2px solid transparent; cursor: pointer; }
+.chips button.on { border-color: var(--accent); }
+
+.sigpad { width: 100%; height: 170px; border: 2px dashed var(--line); border-radius: 7px; background: #fff; touch-action: none; display: block; }
+.sigimg { height: 100px; max-width: 100%; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 7px; }
+
+/* Modal */
+.modal-bg { position: fixed; inset: 0; background: rgba(10, 16, 24, 0.55); z-index: 50; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal { background: var(--surface); color: var(--ink); border-radius: 10px; padding: 18px; width: min(520px, 100%); display: grid; gap: 12px; max-height: 90vh; overflow: auto; }
+.modal textarea { min-height: 200px; font: 0.8rem var(--font-mono); }
+
+/* Bericht */
+.report { --cell-empty: #fff; --cell-line: #aab7c5; --obst: #cfd5dc; --obst-2: #e3e7ec; --accent: #1f4fbf; --ink: #16212c; --ink-soft: #5b6b7a; --err: #b42318; --err-soft: #fbe1de; --surface-2: #eef3f8; --line: #d5dce4;
+  background: #fff; color: #16212c; border: 1px solid var(--line); border-radius: 4px; padding: 28px 28px 36px; display: grid; gap: 10px; font-size: 0.86rem; max-width: 820px; width: 100%; margin: 0 auto; position: relative; overflow: hidden; }
+.report h2 { color: #1f4fbf; font-size: 1.1rem; margin-top: 14px; }
+.report h3 { margin-top: 6px; }
+.report table { font-size: 0.8rem; } .report th, .report td { border-color: #d5dce4; color: #16212c; } .report th { color: #5b6b7a; }
+.report .kv { display: grid; grid-template-columns: 36% 1fr; gap: 0; } .report .kv > div { padding: 4px 0; border-bottom: 1px solid #e1e6ec; }
+.report .kv > div:nth-child(odd) { color: #5b6b7a; }
+.report .rhead { display: flex; justify-content: space-between; font-size: 0.72rem; color: #5b6b7a; border-bottom: 1px solid #d5dce4; padding-bottom: 6px; }
+.report .draft { position: absolute; top: 260px; left: 50%; transform: translateX(-50%) rotate(-28deg); font: 700 6rem var(--font-display); color: rgba(225, 29, 72, 0.1); pointer-events: none; white-space: nowrap; }
+.report .rphotos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.report .rphotos img { width: 100%; aspect-ratio: 4/3; object-fit: contain; background: #f1f5f9; }
+.report .cell { cursor: default; } .report .pv-grid { touch-action: auto; }
+.report .alert { background: #fbe1de; color: #b42318; padding: 6px 10px; border-left: 3px solid #b42318; }
+.report .kpis .kpi { background: #eef3f8; } .report .kpi span { color: #5b6b7a; }
+@media print {
+  .top, .noprint, body::before { display: none !important; }
+  body { background: #fff; } .wrap { padding: 0; max-width: none; }
+  .report { border: 0; padding: 0; max-width: none; }
+  .report .pagebreak { break-before: page; }
+}
+@media (prefers-reduced-motion: no-preference) { .btn, .cell { transition: background-color 0.12s, border-color 0.12s; } }
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <button class="brand" data-act="home">PV-Doku <small>Prototyp</small></button>
+    <nav aria-label="Hauptnavigation" id="nav"></nav>
+    <span class="spacer"></span>
+    <label for="role">Rolle
+      <select id="role" aria-label="Rolle simulieren">
+        <option value="admin">Administrator</option>
+        <option value="projektleiter">Projektverantwortlicher</option>
+        <option value="monteur">Monteur</option>
+        <option value="betrachter">Betrachter</option>
+      </select>
+    </label>
+    <span class="savestate" id="savestate" aria-live="polite"></span>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<div id="modal" hidden></div>
+
+<script>
+"use strict";
+// ======================================================================
+// PV-Doku Prototyp – lokaler Funktionstest ohne Server.
+// Alle Daten liegen nur in diesem Browser (localStorage).
+// ======================================================================
+
+const KEY = "pvdoku-prototyp-v1";
+const STATUS = { entwurf: "Entwurf", in_bearbeitung: "In Bearbeitung", zur_pruefung: "Zur Prüfung", nacharbeit: "Nacharbeit erforderlich", abgeschlossen: "Abgeschlossen", archiviert: "Archiviert" };
+const TRANS = { entwurf: ["in_bearbeitung", "zur_pruefung"], in_bearbeitung: ["entwurf", "zur_pruefung"], zur_pruefung: ["in_bearbeitung", "nacharbeit", "abgeschlossen"], nacharbeit: ["in_bearbeitung", "zur_pruefung"], abgeschlossen: ["nacharbeit", "archiviert"], archiviert: ["abgeschlossen"] };
+const ROLES = { admin: "Administrator", projektleiter: "Projektverantwortlicher", monteur: "Monteur", betrachter: "Betrachter" };
+const ORIENT = { N: "Nord", NO: "Nordost", O: "Ost", SO: "Südost", S: "Süd", SW: "Südwest", W: "West", NW: "Nordwest" };
+const ORIENT_ORDER = ["NW", "N", "NO", "W", "O", "SW", "S", "SO"];
+const COMP = { wechselrichter: "Wechselrichter", speicher: "Speicher", datenlogger: "Datenlogger", smart_meter: "Smart Meter", wallbox: "Wallbox", sonstiges: "Sonstige Komponente" };
+const COMP_PHOTO = { wechselrichter: "wechselrichter", speicher: "speicher", datenlogger: "sonstiges", smart_meter: "zaehlerschrank", wallbox: "sonstiges", sonstiges: "sonstiges" };
+const PHOTO = { gesamtansicht: "Gesamtansicht", dachflaeche: "Dachfläche", unterkonstruktion: "Unterkonstruktion", module: "Module", wechselrichter: "Wechselrichter", speicher: "Speicher", zaehlerschrank: "Zählerschrank", schutztechnik: "Schutztechnik", beschriftung: "Beschriftung", mangel: "Mangel", sonstiges: "Sonstiges" };
+const TEST_ST = { geprueft: "geprüft", nicht_geprueft: "nicht geprüft", nicht_zutreffend: "nicht zutreffend" };
+const CHECK_ST = { erledigt: "erledigt", nicht_erledigt: "nicht erledigt", nicht_zutreffend: "nicht zutreffend" };
+const DEF_PRIO = { niedrig: "niedrig", mittel: "mittel", hoch: "hoch" };
+const DEF_ST = { offen: "offen", in_arbeit: "in Arbeit", erledigt: "erledigt" };
+const STRING_COLORS = ["#2563eb", "#dc2626", "#16a34a", "#d97706", "#7c3aed", "#0891b2", "#db2777", "#4d7c0f"];
+const STEPS = [["stammdaten", "Stammdaten"], ["bauherr", "Bauherr"], ["dachflaechen", "Dachflächen"], ["komponenten", "Komponenten"], ["fotos", "Fotos"], ["pruefung", "Prüfung"], ["maengel", "Mängel"], ["abschluss", "Abschluss"], ["protokoll", "Protokoll"]];
+const STEP_LABEL = Object.fromEntries(STEPS);
+const ROOF_TYPES = ["Satteldach", "Pultdach", "Walmdach", "Zeltdach", "Mansarddach", "Flachdach", "Sonstige"];
+const COVERINGS = ["Tonziegel", "Betondachstein", "Schiefer", "Trapezblech", "Stehfalz", "Bitumen", "Folie", "Sonstige"];
+const MOUNTINGS = ["Aufdach", "Indach", "Flachdach aufgeständert", "Flachdach Ost-West", "Fassade", "Sonstige"];
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-4);
+const today = () => new Date().toISOString().slice(0, 10);
+const fmtDate = (v) => { if (!v) return "–"; const d = new Date(v.length === 10 ? v + "T00:00:00" : v); return isNaN(d) ? "–" : d.toLocaleDateString("de-DE"); };
+const fmtDT = (v) => { const d = new Date(v); return isNaN(d) ? "–" : d.toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" }); };
+const fmtNum = (v, d = 2) => (v == null || v === "" || isNaN(v)) ? "–" : Number(v).toLocaleString("de-DE", { maximumFractionDigits: d });
+const fmtKwp = (v) => fmtNum(v, 3) + " kWp";
+const rowLabel = (i) => { let s = "", n = i + 1; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+const posLabel = (r, c) => rowLabel(r) + (c + 1);
+const clone = (o) => JSON.parse(JSON.stringify(o));
+
+// ---------------------------------------------------------------- Beispieldaten
+function defaultTemplates() {
+  return {
+    checkliste: [
+      { text: "Anlagenbeschriftung (DC-Leitungen, Freischaltstellen, Warnhinweise) angebracht", required: true },
+      { text: "Mechanische Sichtprüfung von Unterkonstruktion und Modulen durchgeführt", required: true },
+      { text: "Komponentenfotos inkl. Typenschilder erstellt", required: true },
+      { text: "Zähler- und Netzbetreiberunterlagen vollständig", required: true },
+      { text: "Monitoring-Zugang eingerichtet und getestet", required: true },
+      { text: "Übergabe und Einweisung des Bauherrn erfolgt", required: true },
+      { text: "Baustelle geräumt, Verpackung/Abfälle entsorgt", required: false },
+    ],
+    pruefung: [
+      { text: "Leerlaufspannung je String (Beispiel – freizugeben)", unit: "V", required: true },
+      { text: "Isolationswiderstand DC (Beispiel – freizugeben)", unit: "MΩ", required: true },
+      { text: "Polarität der Strings geprüft (Beispiel – freizugeben)", unit: "", required: true },
+      { text: "Wechselrichter speist ein, keine Fehlermeldung (Beispiel – freizugeben)", unit: "", required: true },
+      { text: "Speicher-Erstinbetriebnahme durchgeführt (Beispiel – freizugeben)", unit: "", required: false },
+    ],
+  };
+}
+
+function newProject(number, name) {
+  const t = S ? S.company.templates : defaultTemplates();
+  return {
+    id: uid(), number, name, installation_date: "", contractor: S ? S.company.name : "", installer: "", notes: "",
+    status: "entwurf", version: 1, created_at: new Date().toISOString(),
+    client: { type: "person", first: "", last: "", company: "", street: "", no: "", zip: "", city: "", country: "Deutschland", phone: "", email: "" },
+    site: { differs: false, street: "", no: "", zip: "", city: "", country: "Deutschland", lat: null, lng: null },
+    moduleTypes: [], roofs: [], strings: [], components: [], photos: [],
+    tests: t.pruefung.map((x, i) => ({ id: uid(), label: x.text, unit: x.unit, required: x.required, value: "", status: null, comment: "" })),
+    checklist: t.checkliste.map((x) => ({ id: uid(), text: x.text, required: x.required, status: null, comment: "" })),
+    defects: [], signatures: [], versions: [], audit: [],
+  };
+}
+
+function seed() {
+  const s = { v: 1, role: "projektleiter", user: "Testbenutzer", company: { name: "Beispiel Solar GmbH", header: "", footer: "Beispiel Solar GmbH · Musterstraße 1 · 12345 Musterstadt", requiredPhotos: ["gesamtansicht", "wechselrichter", "zaehlerschrank"], templates: defaultTemplates() }, projects: [], view: null };
+  S = s;
+  const p = newProject("2026-001", "Beispielprojekt Musterweg 12");
+  Object.assign(p, { installation_date: "2026-10-08", installer: "Max Beispiel", status: "in_bearbeitung", notes: "Beispieldaten zum Ausprobieren – frei änderbar." });
+  Object.assign(p.client, { first: "Erika", last: "Mustermann", street: "Musterweg", no: "12", zip: "12345", city: "Musterstadt", phone: "0000 123456" });
+  const mt = { id: uid(), manufacturer: "Beispiel Modul AG", model: "BX-450 Glas-Glas", wp: 450 };
+  p.moduleTypes.push(mt);
+  const wr = { id: uid(), category: "wechselrichter", manufacturer: "Beispiel Inverter", model: "WR-10 Hybrid", serial: "WR10-000123", location: "Hauswirtschaftsraum", date: "2026-10-08", kw: 10, kwh: null, notes: "" };
+  const sp = { id: uid(), category: "speicher", manufacturer: "Beispiel Inverter", model: "Batterie 10.2", serial: "", location: "Hauswirtschaftsraum", date: "2026-10-08", kw: null, kwh: 10.2, notes: "" };
+  p.components.push(wr, sp);
+  const s1 = { id: uid(), name: "S1", color: STRING_COLORS[0], inverterId: wr.id, mpp: "A" };
+  const s2 = { id: uid(), name: "S2", color: STRING_COLORS[1], inverterId: wr.id, mpp: "B" };
+  p.strings.push(s1, s2);
+  const r1 = newRoof("Haus Süd", 0); Object.assign(r1, { orientation: "S", roof_type: "Satteldach", tilt: 38, covering: "Betondachstein", mounting: "Aufdach", moduleTypeId: mt.id });
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 9; c++) r1.cells[r + ":" + c] = { s: "modul", l: "", str: c < 5 ? s1.id : s2.id, sn: "" };
+  r1.cells["4:9"] = { s: "hindernis", l: "Kamin", str: null, sn: "" }; r1.cells["4:8"] = { s: "hindernis", l: "Kamin", str: null, sn: "" };
+  const r2 = newRoof("Garage Ost", 1); Object.assign(r2, { orientation: "O", rows: 3, cols: 6, roof_type: "Pultdach", tilt: 10, covering: "Trapezblech", mounting: "Aufdach", format: "quer", moduleTypeId: mt.id });
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 6; c++) r2.cells[r + ":" + c] = { s: "modul", l: "", str: s2.id, sn: "" };
+  p.roofs.push(r1, r2);
+  p.tests[0].status = "geprueft"; p.tests[0].value = "612";
+  p.checklist[0].status = "erledigt"; p.checklist[1].status = "erledigt";
+  p.defects.push({ id: uid(), description: "Abdeckkappe Kabelkanal am Wechselrichter fehlt", category: "Montage", priority: "mittel", responsible: "Max Beispiel", due: "", status: "offen", created_at: new Date().toISOString() });
+  p.audit.push({ at: new Date().toISOString(), user: "System", role: "", action: "Beispielprojekt angelegt", version: 1 });
+  s.projects.push(p);
+  return s;
+}
+
+function newRoof(name, sort) {
+  return { id: uid(), name, sort, orientation: null, roof_type: "", tilt: null, covering: "", width: null, length: null, mounting: "", remark: "", rows: 5, cols: 10, format: "hoch", rotation: 0, moduleTypeId: null, cells: {} };
+}
+
+// ---------------------------------------------------------------- Speicher
+let S = null;
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) { const d = JSON.parse(raw); if (d && d.v === 1) return d; } } catch (e) {}
+  return seed();
+}
+let saveTimer = null;
+function setSave(state, text) { const el = $("#savestate"); el.className = "savestate " + (state === "err" ? "err" : ""); el.textContent = text; }
+function save() { setSave("", "speichert …"); clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 300); }
+function saveNow() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); setSave("", "✓ lokal gespeichert"); }
+  catch (e) { setSave("err", "⚠ Speicher voll"); note("Der Browser-Speicher ist voll. Bitte einige Fotos löschen oder ein Projekt exportieren und entfernen.", "err"); }
+}
+
+// ---------------------------------------------------------------- Rechte und Status
+const canEditRole = () => ["admin", "projektleiter", "monteur"].includes(S.role);
+const canApprove = () => ["admin", "projektleiter"].includes(S.role);
+const isLocked = (p) => p.status === "abgeschlossen" || p.status === "archiviert";
+const editable = (p) => canEditRole() && !isLocked(p);
+function allowedTransitions(p) {
+  if (!canEditRole()) return [];
+  return TRANS[p.status].filter((to) => {
+    const needs = to === "abgeschlossen" || to === "archiviert" || to === "nacharbeit" || isLocked(p);
+    if (needs && !canApprove()) return false;
+    if (p.status === "archiviert" && S.role !== "admin") return false;
+    return true;
+  });
+}
+function audit(p, action, detail = "") {
+  const last = p.audit[p.audit.length - 1];
+  const now = new Date().toISOString();
+  // Fortlaufende Eingaben im selben Feld zusammenfassen
+  if (last && last.action === action && last.detail === detail && last.user === S.user && Date.now() - new Date(last.at) < 120000) { last.at = now; return; }
+  p.audit.push({ at: now, user: S.user, role: S.role, action, detail, version: p.version });
+  if (p.audit.length > 800) p.audit.splice(0, p.audit.length - 800);
+}
+
+// ---------------------------------------------------------------- Berechnungen
+const countModules = (roof) => Object.values(roof.cells).filter((c) => c.s === "modul").length;
+const moduleType = (p, roof) => p.moduleTypes.find((m) => m.id === roof.moduleTypeId);
+const roofKwp = (p, roof) => { const m = moduleType(p, roof); return m && m.wp > 0 ? Math.round(countModules(roof) * m.wp) / 1000 : 0; };
+const totals = (p) => ({ modules: p.roofs.reduce((a, r) => a + countModules(r), 0), kwp: p.roofs.reduce((a, r) => a + roofKwp(p, r), 0) });
+const clientName = (p) => p.client.type === "firma" ? p.client.company : [p.client.first, p.client.last].filter(Boolean).join(" ");
+const addr = (o) => [[o.street, o.no].filter(Boolean).join(" "), [o.zip, o.city].filter(Boolean).join(" "), o.country && o.country !== "Deutschland" ? o.country : ""].filter(Boolean).join(", ");
+const siteAddr = (p) => p.site.differs ? addr(p.site) : addr(p.client);
+const blank = (v) => !v || String(v).trim() === "";
+
+function displayDims(rows, cols, rot) { return rot === 90 || rot === 270 ? [cols, rows] : [rows, cols]; }
+function d2l(i, j, rows, cols, rot) {
+  if (rot === 90) return [rows - 1 - j, i];
+  if (rot === 180) return [rows - 1 - i, cols - 1 - j];
+  if (rot === 270) return [j, cols - 1 - i];
+  return [i, j];
+}
+
+// Vollständigkeitsprüfung – gleiche Regeln wie in der App (Fehler blockieren den Abschluss)
+function checkCompleteness(p) {
+  const out = [];
+  const E = (step, m) => out.push({ level: "error", step, m });
+  const W = (step, m) => out.push({ level: "warning", step, m });
+  if (blank(p.number)) E("stammdaten", "Projektnummer fehlt");
+  if (blank(p.name)) E("stammdaten", "Projektname fehlt");
+  if (!p.installation_date) E("stammdaten", "Installationsdatum fehlt");
+  if (blank(p.contractor)) E("stammdaten", "Ausführendes Unternehmen fehlt");
+  if (blank(p.installer)) E("stammdaten", "Verantwortlicher Monteur fehlt");
+  const c = p.client;
+  if ((c.type === "person" && blank(c.last)) || (c.type === "firma" && blank(c.company))) E("bauherr", "Name bzw. Firma des Bauherrn fehlt");
+  if (blank(c.street) || blank(c.zip) || blank(c.city)) E("bauherr", "Anschrift des Bauherrn unvollständig");
+  if (blank(c.phone) && blank(c.email)) W("bauherr", "Keine Kontaktmöglichkeit (Telefon/E-Mail) zum Bauherrn");
+  if (p.site.differs && (blank(p.site.street) || blank(p.site.zip) || blank(p.site.city))) E("bauherr", "Abweichende Anlagenanschrift unvollständig");
+  if (p.roofs.length === 0) E("dachflaechen", "Keine Dachfläche angelegt");
+  for (const r of p.roofs) {
+    const n = countModules(r); const m = moduleType(p, r);
+    if (!r.orientation) E("dachflaechen", `Dachfläche „${r.name}“: Himmelsrichtung fehlt`);
+    if (n === 0) E("dachflaechen", `Dachfläche „${r.name}“: keine Module belegt`);
+    if (n > 0 && (!m || !(m.wp > 0))) E("dachflaechen", `Dachfläche „${r.name}“: Modultyp mit Nennleistung fehlt`);
+    else if (n > 0 && m && (blank(m.manufacturer) || blank(m.model))) E("dachflaechen", `Dachfläche „${r.name}“: Hersteller/Typ des Moduls fehlt`);
+    if (r.tilt == null) W("dachflaechen", `Dachfläche „${r.name}“: Dachneigung fehlt`);
+  }
+  if (p.strings.length) {
+    const un = p.roofs.reduce((a, r) => a + Object.values(r.cells).filter((x) => x.s === "modul" && !p.strings.some((s) => s.id === x.str)).length, 0);
+    if (un) W("dachflaechen", `${un} Modul(e) ohne String-Zuordnung`);
+    for (const s of p.strings) if (!s.inverterId) W("dachflaechen", `String „${s.name}“ ohne Wechselrichter`);
+  }
+  if (!p.components.some((x) => x.category === "wechselrichter")) E("komponenten", "Kein Wechselrichter erfasst");
+  for (const k of p.components) {
+    const lbl = COMP[k.category] + (k.model ? ` „${k.model}“` : "");
+    if (blank(k.manufacturer) || blank(k.model)) E("komponenten", `${lbl}: Hersteller oder Modell fehlt`);
+    if (blank(k.serial)) W("komponenten", `${lbl}: Seriennummer fehlt`);
+    if (!p.photos.some((f) => f.componentId === k.id)) W("komponenten", `${lbl}: kein Foto hinterlegt`);
+  }
+  for (const cat of S.company.requiredPhotos) if (!p.photos.some((f) => f.category === cat)) E("fotos", `Pflichtfoto fehlt: ${PHOTO[cat]}`);
+  for (const t of p.tests) {
+    if (t.required && !t.status) E("pruefung", `Pflichtprüfung nicht bearbeitet: ${t.label}`);
+    else if (t.required && t.status === "geprueft" && t.unit && blank(t.value)) E("pruefung", `Messwert fehlt: ${t.label}`);
+    else if (t.status === "nicht_geprueft") W("pruefung", `Nicht geprüft: ${t.label}`);
+  }
+  for (const x of p.checklist) {
+    if (x.required && !x.status) E("pruefung", `Checkliste nicht bearbeitet: ${x.text}`);
+    else if (x.required && x.status === "nicht_erledigt" && blank(x.comment)) E("pruefung", `Abweichung ohne Begründung: ${x.text}`);
+    else if (x.status === "nicht_erledigt") W("pruefung", `Begründete Abweichung: ${x.text}`);
+  }
+  for (const d of p.defects) {
+    if (d.status === "erledigt") continue;
+    if (d.priority === "hoch") E("maengel", `Offener Mangel (hoch): ${d.description}`); else W("maengel", `Offener Mangel: ${d.description}`);
+  }
+  for (const role of ["dokumentierender", "bauherr"]) if (!p.signatures.some((s) => s.role === role && s.version === p.version)) W("abschluss", `Unterschrift ${role === "bauherr" ? "Bauherr/Empfänger" : "Dokumentierender"} fehlt`);
+  return out;
+}
+
+// ---------------------------------------------------------------- UI-Zustand
+const ui = { page: "list", pid: null, step: "stammdaten", roofId: null, tool: "modul", activeString: null, sel: new Set(), photoCat: "gesamtansicht", photoFilter: "alle", q: "", status: "", report: null };
+const cur = () => S.projects.find((p) => p.id === ui.pid);
+function persistView() { S.view = { page: ui.page, pid: ui.pid, step: ui.step }; save(); }
+
+// ---------------------------------------------------------------- Modal (statt alert/confirm/prompt)
+function modal({ title, body = "", input = null, ok = "OK", cancel = "Abbrechen", danger = false, wide = false }) {
+  return new Promise((resolve) => {
+    const m = $("#modal");
+    m.hidden = false;
+    m.innerHTML = `<div class="modal-bg"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt" ${wide ? 'style="width:min(760px,100%)"' : ""}>
+      <h2 id="mt">${esc(title)}</h2>${body}
+      ${input ? `<input id="modal-in" value="${esc(input.value || "")}" placeholder="${esc(input.placeholder || "")}">` : ""}
+      <div class="row" style="justify-content:flex-end">${cancel ? `<button class="btn" id="modal-no">${esc(cancel)}</button>` : ""}<button class="btn ${danger ? "danger" : "pri"}" id="modal-ok">${esc(ok)}</button></div></div></div>`;
+    const done = (v) => { m.hidden = true; m.innerHTML = ""; resolve(v); };
+    const inp = $("#modal-in");
+    $("#modal-ok").onclick = () => done(input ? inp.value : true);
+    if ($("#modal-no")) $("#modal-no").onclick = () => done(null);
+    m.querySelector(".modal-bg").addEventListener("click", (e) => { if (e.target.classList.contains("modal-bg")) done(null); });
+    m.onkeydown = (e) => { if (e.key === "Escape") done(null); if (e.key === "Enter" && input) done(inp.value); };
+    (inp || $("#modal-ok")).focus();
+  });
+}
+function note(text, kind = "info") { return modal({ title: kind === "err" ? "Hinweis" : "Info", body: `<div class="note ${kind}">${esc(text)}</div>`, cancel: null }); }
+
+// ---------------------------------------------------------------- Feld-Bausteine
+function fieldAttrs(o) { return `data-f="${o.f}"${o.coll ? ` data-coll="${o.coll}" data-id="${o.id}"` : ""}${o.t ? ` data-t="${o.t}"` : ""}${o.rr ? ' data-rr="1"' : ""}`; }
+function fText(label, o) {
+  const v = o.value ?? ""; const miss = o.req && blank(v);
+  return `<label class="field ${o.cls || ""}"><span>${esc(label)}${o.req ? ' <span class="req">*</span>' : ""}</span>
+    <input id="${o.coll || "p"}-${o.id || ""}-${o.f}" type="${o.type || "text"}" value="${esc(v)}" ${fieldAttrs(o)} ${o.dis ? "disabled" : ""} class="${miss ? "miss" : ""}" ${o.ph ? `placeholder="${esc(o.ph)}"` : ""} ${o.list ? `list="${o.list}"` : ""} ${o.extra || ""}></label>`;
+}
+function fSelect(label, o, options) {
+  return `<label class="field ${o.cls || ""}"><span>${esc(label)}${o.req ? ' <span class="req">*</span>' : ""}</span>
+    <select id="${o.coll || "p"}-${o.id || ""}-${o.f}" ${fieldAttrs(o)} ${o.dis ? "disabled" : ""} class="${o.req && !o.value ? "miss" : ""}">
+    ${o.placeholder !== false ? `<option value="">${esc(o.placeholder || "– bitte wählen –")}</option>` : ""}
+    ${options.map(([v, l]) => `<option value="${esc(v)}" ${String(o.value) === String(v) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`;
+}
+function fArea(label, o) { return `<label class="field ${o.cls || ""}"><span>${esc(label)}</span><textarea id="${o.coll || "p"}-${o.id || ""}-${o.f}" ${fieldAttrs(o)} ${o.dis ? "disabled" : ""} rows="2">${esc(o.value)}</textarea></label>`; }
+function getPath(obj, path) { return path.split(".").reduce((o, k) => o?.[k], obj); }
+function setPath(obj, path, v) { const ks = path.split("."); const last = ks.pop(); ks.reduce((o, k) => o[k], obj)[last] = v; }
+
+// ---------------------------------------------------------------- Rendering
+function render() {
+  $("#role").value = S.role;
+  const nav = [["list", "Projekte"], ...(S.role === "admin" ? [["admin", "Verwaltung"]] : [])];
+  $("#nav").innerHTML = nav.map(([k, l]) => `<button data-act="nav" data-k="${k}" ${ui.page === k || (k === "list" && ui.page === "project") ? 'aria-current="page"' : ""}>${l}</button>`).join("");
+  const m = $("#main");
+  if (ui.page === "project" && cur()) m.innerHTML = renderProject(cur());
+  else if (ui.page === "report" && cur()) m.innerHTML = renderReportPage(cur());
+  else if (ui.page === "admin" && S.role === "admin") m.innerHTML = renderAdmin();
+  else { ui.page = "list"; m.innerHTML = renderList(); }
+  afterRender();
+}
+
+function renderList() {
+  const q = ui.q.trim().toLowerCase();
+  const list = S.projects.filter((p) => (!ui.status ? p.status !== "archiviert" : p.status === ui.status) &&
+    (!q || [p.number, p.name, clientName(p), p.client.city, p.site.city].join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  return `
+  <div class="between"><h1>Projekte</h1>
+    <div class="row">${canEditRole() ? `<button class="btn" data-act="import">Importieren</button><button class="btn pri" data-act="newProject">+ Neues Projekt</button>` : ""}</div></div>
+  <div class="note info small">Prototyp zum Ausprobieren der Abläufe. Alle Eingaben und Fotos bleiben nur in diesem Browser gespeichert. Mit „Rolle“ oben lässt sich prüfen, was Monteur, Projektverantwortlicher oder Betrachter dürfen.</div>
+  <div class="card g3">
+    <label class="field">Suche (Nr., Name, Bauherr, Ort)<input id="q" value="${esc(ui.q)}" data-ui="q" placeholder="z. B. 2026-001"></label>
+    <label class="field">Status<select id="statusf" data-ui="status"><option value="">Alle außer archiviert</option>${Object.entries(STATUS).map(([k, l]) => `<option value="${k}" ${ui.status === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+  </div>
+  <div class="plist">${list.length ? list.map((p) => { const t = totals(p); return `
+    <button class="pitem" data-act="open" data-id="${p.id}">
+      <span class="t"><span class="mono">${esc(p.number)}</span> · ${esc(p.name)}</span>
+      <span class="pill st-${p.status}">${STATUS[p.status]}${p.version > 1 ? " · v" + p.version : ""}</span>
+      <span class="s">${esc(clientName(p) || "Bauherr fehlt")} · ${esc(p.site.differs ? p.site.city : p.client.city) || "Ort fehlt"} · ${t.modules} Module · ${fmtKwp(t.kwp)} · erstellt ${fmtDate(p.created_at)}</span>
+    </button>`; }).join("") : `<p class="muted">Keine Projekte gefunden.</p>`}</div>`;
+}
+
+function renderProject(p) {
+  return `<div id="phead">${renderHead(p)}</div><div id="pbody">${renderStep(p)}</div>`;
+}
+function renderHead(p) {
+  const t = totals(p); const issues = checkCompleteness(p);
+  return `<div class="card" style="gap:10px">
+    <div class="phead"><h1><span class="mono">${esc(p.number)}</span> · ${esc(p.name)}</h1>
+      <span class="pill st-${p.status}">${STATUS[p.status]}</span><span class="pill">Version ${p.version}</span></div>
+    <div class="kpis"><div class="kpi"><b>${t.modules}</b><span>Module</span></div><div class="kpi"><b>${fmtKwp(t.kwp)}</b><span>Leistung</span></div>
+      <div class="kpi"><b>${issues.filter((i) => i.level === "error").length}</b><span>offene Fehler</span></div></div>
+    ${isLocked(p) ? `<div class="note info small">Projekt ist ${STATUS[p.status].toLowerCase()} und gesperrt. Änderungen nur über „Neue Version eröffnen“ unter Abschluss.</div>` : !canEditRole() ? `<div class="note info small">Rolle Betrachter: nur Lesezugriff.</div>` : ""}
+    <nav class="steps" aria-label="Projektschritte">${STEPS.map(([k, l]) => {
+      const si = issues.filter((i) => i.step === k);
+      const lv = si.some((i) => i.level === "error") ? "err" : si.some((i) => i.level === "warning") ? "warn" : k === "protokoll" ? "" : "ok";
+      return `<button data-act="step" data-k="${k}" ${ui.step === k ? 'aria-current="step"' : ""}>${lv ? `<span class="dot ${lv}"></span>` : ""}${l}</button>`;
+    }).join("")}</nav></div>`;
+}
+function refreshHead() { const p = cur(); if (p && $("#phead")) $("#phead").innerHTML = renderHead(p); }
+function renderStep(p) {
+  switch (ui.step) {
+    case "stammdaten": return stepStammdaten(p);
+    case "bauherr": return stepBauherr(p);
+    case "dachflaechen": return stepDach(p);
+    case "komponenten": return stepKomp(p);
+    case "fotos": return stepFotos(p);
+    case "pruefung": return stepPruefung(p);
+    case "maengel": return stepMaengel(p);
+    case "abschluss": return stepAbschluss(p);
+    case "protokoll": return stepProtokoll(p);
+  }
+  return "";
+}
+function rerenderBody() { const p = cur(); if (p && $("#pbody")) { $("#pbody").innerHTML = renderStep(p); refreshHead(); afterRender(); } }
+
+// ---------------------------------------------------------------- Schritte
+function stepStammdaten(p) {
+  const d = !editable(p);
+  return `<div class="card"><h2>Projektstammdaten</h2><div class="g2">
+    ${fText("Projektnummer", { f: "number", value: p.number, req: 1, dis: d })}
+    ${fText("Projektname", { f: "name", value: p.name, req: 1, dis: d })}
+    ${fText("Installationsdatum", { f: "installation_date", value: p.installation_date, req: 1, dis: d, type: "date" })}
+    ${fText("Ausführendes Unternehmen", { f: "contractor", value: p.contractor, req: 1, dis: d })}
+    ${fText("Verantwortlicher Monteur", { f: "installer", value: p.installer, req: 1, dis: d })}
+    ${fArea("Notizen (optional)", { f: "notes", value: p.notes, dis: d, cls: "span" })}</div></div>
+    ${S.role === "admin" ? `<div class="card"><h2>Projekt löschen</h2><p class="muted small">Entfernt das Projekt mit allen Daten und Fotos aus diesem Browser.</p><div><button class="btn danger" data-act="deleteProject">Projekt löschen</button></div></div>` : ""}`;
+}
+
+function stepBauherr(p) {
+  const d = !editable(p); const c = p.client;
+  return `<div class="card"><h2>Bauherr</h2>
+    <div class="row"><label class="check"><input type="radio" name="ct" value="person" data-f="client.type" data-rr="1" ${c.type === "person" ? "checked" : ""} ${d ? "disabled" : ""}> Privatperson</label>
+    <label class="check"><input type="radio" name="ct" value="firma" data-f="client.type" data-rr="1" ${c.type === "firma" ? "checked" : ""} ${d ? "disabled" : ""}> Firma</label></div>
+    <div class="g2">
+    ${c.type === "firma" ? fText("Firma", { f: "client.company", value: c.company, req: 1, dis: d }) + fText("Ansprechpartner (optional)", { f: "client.last", value: c.last, dis: d })
+      : fText("Vorname", { f: "client.first", value: c.first, dis: d }) + fText("Name", { f: "client.last", value: c.last, req: 1, dis: d })}
+    ${fText("Straße", { f: "client.street", value: c.street, req: 1, dis: d })}${fText("Hausnummer", { f: "client.no", value: c.no, dis: d })}
+    ${fText("Postleitzahl", { f: "client.zip", value: c.zip, req: 1, dis: d, extra: 'inputmode="numeric"' })}${fText("Ort", { f: "client.city", value: c.city, req: 1, dis: d })}
+    ${fText("Land", { f: "client.country", value: c.country, dis: d })}${fText("Telefon", { f: "client.phone", value: c.phone, dis: d, type: "tel" })}
+    ${fText("E-Mail", { f: "client.email", value: c.email, dis: d, type: "email" })}</div></div>
+    <div class="card"><h2>Anlagenstandort</h2>
+    <label class="check"><input type="checkbox" data-f="site.differs" data-t="bool" data-rr="1" ${p.site.differs ? "checked" : ""} ${d ? "disabled" : ""}> Anlagenanschrift weicht von der Anschrift des Bauherrn ab</label>
+    ${p.site.differs ? `<div class="g2">${fText("Straße", { f: "site.street", value: p.site.street, req: 1, dis: d })}${fText("Hausnummer", { f: "site.no", value: p.site.no, dis: d })}
+      ${fText("Postleitzahl", { f: "site.zip", value: p.site.zip, req: 1, dis: d })}${fText("Ort", { f: "site.city", value: p.site.city, req: 1, dis: d })}</div>` : ""}
+    <div class="g2">${fText("Breitengrad (optional)", { f: "site.lat", value: p.site.lat, dis: d, t: "num", type: "number", extra: 'step="0.000001"' })}
+      ${fText("Längengrad (optional)", { f: "site.lng", value: p.site.lng, dis: d, t: "num", type: "number", extra: 'step="0.000001"' })}</div></div>`;
+}
+
+function stepDach(p) {
+  const d = !editable(p);
+  if (!p.roofs.some((r) => r.id === ui.roofId)) ui.roofId = p.roofs[0]?.id ?? null;
+  const roof = p.roofs.find((r) => r.id === ui.roofId);
+  return `<div class="card"><div class="between"><h2>Dachflächen</h2>${d ? "" : `<button class="btn pri sm" data-act="addRoof">+ Dachfläche</button>`}</div>
+    <div class="row" role="tablist">${p.roofs.map((r) => `<button role="tab" aria-selected="${r.id === ui.roofId}" class="btn sm ${r.id === ui.roofId ? "on" : ""}" data-act="roofTab" data-id="${r.id}">${esc(r.name)}${r.orientation ? ` (${r.orientation})` : ""} · <span class="num">${countModules(r)}</span></button>`).join("") || '<span class="muted">Noch keine Dachfläche angelegt.</span>'}</div></div>
+    ${roof ? roofPanel(p, roof, d) : ""}
+    ${moduleTypesCard(p, d)}
+    ${stringsCard(p, d)}`;
+}
+
+function roofPanel(p, r, d) {
+  const o = (f, extra = {}) => ({ f, coll: "roofs", id: r.id, value: r[f], dis: d, ...extra });
+  const m = moduleType(p, r);
+  return `<div class="card"><div class="between"><h2>${esc(r.name)}</h2>
+    ${d ? "" : `<div class="row"><button class="btn sm" data-act="dupRoof">Duplizieren</button><button class="btn sm danger" data-act="delRoof">Löschen</button></div>`}</div>
+    <div class="g3">${fText("Bezeichnung", o("name", { req: 1, rr: 1 }))}${fText("Dachform", o("roof_type", { list: "dl-rt" }))}${fText("Dachneigung (°)", o("tilt", { t: "num", type: "number" }))}
+      ${fText("Eindeckung", o("covering", { list: "dl-cov" }))}${fText("Montageart", o("mounting", { list: "dl-mnt" }))}
+      <div class="g2">${fText("Breite (m)", o("width", { t: "num", type: "number" }))}${fText("Länge (m)", o("length", { t: "num", type: "number" }))}</div></div>
+    <datalist id="dl-rt">${ROOF_TYPES.map((x) => `<option value="${x}">`).join("")}</datalist><datalist id="dl-cov">${COVERINGS.map((x) => `<option value="${x}">`).join("")}</datalist><datalist id="dl-mnt">${MOUNTINGS.map((x) => `<option value="${x}">`).join("")}</datalist>
+    <div class="field"><span>Himmelsrichtung <span class="req">*</span></span>
+      <div class="orient" role="radiogroup" aria-label="Himmelsrichtung">${ORIENT_ORDER.map((k) => `<button role="radio" aria-checked="${r.orientation === k}" class="btn sm ${r.orientation === k ? "on" : ""}" title="${ORIENT[k]}" data-act="orient" data-k="${k}" ${d ? "disabled" : ""}>${k}</button>`).join("")}</div></div>
+    <div class="g3">${fText("Reihen", o("rows", { t: "int", type: "number", rr: 1, extra: 'min="1" max="40"' }))}${fText("Spalten", o("cols", { t: "int", type: "number", rr: 1, extra: 'min="1" max="60"' }))}
+      ${fSelect("Modultyp", o("moduleTypeId", { req: 1, rr: 1, placeholder: "– Modultyp wählen (unten anlegen) –" }), p.moduleTypes.map((x) => [x.id, `${x.manufacturer} ${x.model} · ${x.wp} Wp`]))}</div>
+    ${fArea("Bemerkung", o("remark"))}
+    <h3>Modulbelegung</h3>
+    <p class="muted small">Tippen setzt oder entfernt ein Modul, Ziehen bearbeitet mehrere Positionen. ${m ? `Leistung dieser Fläche: <span class="num">${countModules(r)} × ${m.wp} Wp = ${fmtKwp(roofKwp(p, r))}</span>` : ""}</p>
+    <div id="gridbox">${gridEditor(p, r, d)}</div></div>`;
+}
+
+function gridEditor(p, r, d) {
+  const strings = p.strings;
+  if (!strings.some((s) => s.id === ui.activeString)) ui.activeString = strings[0]?.id ?? null;
+  const tools = [["modul", "▦ Modul"], ["hindernis", "▨ Hindernis"], ["gesperrt", "✕ Gesperrt"], ["leeren", "⌫ Leeren"], ["string", "〰 String"], ["auswahl", "⬚ Auswahl"]];
+  const selCount = ui.sel.size;
+  let single = null;
+  if (selCount === 1) { const c = r.cells[[...ui.sel][0]]; if (c && c.s === "modul") single = [...ui.sel][0]; }
+  return `${d ? "" : `<div class="tools" role="toolbar" aria-label="Rasterwerkzeuge">${tools.map(([k, l]) => `<button class="btn sm ${ui.tool === k ? "on" : ""}" aria-pressed="${ui.tool === k}" data-act="tool" data-k="${k}">${l}</button>`).join("")}</div>
+    ${ui.tool === "string" ? `<div class="row small">${strings.length ? "Aktiver String: " + strings.map((s) => `<button class="btn sm ${ui.activeString === s.id ? "on" : ""}" data-act="activeString" data-id="${s.id}"><span class="swatch" style="background:${s.color}"></span>${esc(s.name)}</button>`).join("") : '<span class="muted">Bitte unten zuerst einen String anlegen.</span>'}</div>` : ""}
+    <div class="tools"><button class="btn sm" data-act="fillAll">Alle belegen</button><button class="btn sm danger" data-act="resetGrid">Raster zurücksetzen</button>
+      <button class="btn sm" data-act="rotate">⟳ Ansicht drehen (${r.rotation}°)</button><button class="btn sm" data-act="format">Format: ${r.format === "quer" ? "Querformat" : "Hochformat"}</button></div>`}
+    ${gridHtml(p, r, { interactive: !d })}
+    <div class="legend"><span><i style="background:var(--accent)"></i>Modul</span><span><i style="background:var(--cell-empty);border-style:dashed"></i>frei</span><span><i style="background:var(--obst)"></i>Hindernis</span><span><i style="background:var(--err-soft);border-color:var(--err)"></i>gesperrt</span>${strings.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join("")}</div>
+    ${!d && selCount ? `<div class="selbar"><div class="between"><strong>${selCount} Position(en) ausgewählt</strong><button class="btn sm" data-act="selClear">Auswahl aufheben</button></div>
+      <div class="tools"><button class="btn sm" data-act="selApply" data-k="modul">Auswahl belegen</button><button class="btn sm" data-act="selApply" data-k="hindernis">Als Hindernis</button><button class="btn sm" data-act="selApply" data-k="gesperrt">Sperren</button><button class="btn sm" data-act="selLabel">Beschriften …</button><button class="btn sm danger" data-act="selApply" data-k="leeren">Auswahl löschen</button>
+      ${strings.length ? `<select id="selstring" data-ui="selstring" style="width:auto;min-height:36px"><option value="">String zuordnen …</option><option value="-">– keinem String –</option>${strings.map((s) => `<option value="${s.id}">${esc(s.name)}</option>`).join("")}</select>` : ""}</div>
+      ${single ? `<label class="field" style="max-width:340px">Seriennummer Modul ${posLabel(...single.split(":").map(Number))} (optional)<input id="sn-in" data-ui="serial" value="${esc(r.cells[single].sn)}"></label>` : ""}</div>` : ""}`;
+}
+
+function gridHtml(p, r, { interactive, small = false }) {
+  const rot = r.rotation; const [dr, dc] = displayDims(r.rows, r.cols, rot);
+  const swapped = rot === 90 || rot === 270; const land = (r.format === "quer") !== swapped;
+  const k = small ? Math.min(1, 560 / (dc * (land ? 40 : 28))) : 1;
+  const w = Math.round((land ? 44 : 30) * k), h = Math.round((land ? 30 : 44) * k);
+  const smap = new Map(p.strings.map((s) => [s.id, s]));
+  let html = `<div class="grid-scroll"><div class="pv-grid" ${interactive ? `data-grid="${r.id}"` : ""} style="grid-template-columns:22px repeat(${dc},${w}px);grid-auto-rows:${h}px" role="grid" aria-label="Modulraster ${esc(r.name)}">
+    <div style="height:16px"></div>`;
+  for (let j = 0; j < dc; j++) { const [lr, lc] = d2l(0, j, r.rows, r.cols, rot); html += `<div class="ax" style="height:16px;align-self:end">${swapped ? rowLabel(lr) : lc + 1}</div>`; }
+  for (let i = 0; i < dr; i++) {
+    const [lr0, lc0] = d2l(i, 0, r.rows, r.cols, rot);
+    html += `<div class="ax">${swapped ? lc0 + 1 : rowLabel(lr0)}</div>`;
+    for (let j = 0; j < dc; j++) {
+      const [lr, lc] = d2l(i, j, r.rows, r.cols, rot); const key = lr + ":" + lc; const c = r.cells[key];
+      const s = c?.str ? smap.get(c.str) : null;
+      const title = [posLabel(lr, lc), c ? ({ modul: "Modul", hindernis: "Hindernis", gesperrt: "gesperrt" })[c.s] : "frei", s ? "String " + s.name : "", c?.l, c?.sn ? "SN " + c.sn : ""].filter(Boolean).join(" · ");
+      const label = c?.s === "modul" ? (s ? s.name : "") : c ? (c.l || (c.s === "gesperrt" ? "✕" : "")) : "";
+      html += `<${interactive ? "button" : "div"} ${interactive ? `type="button" data-di="${i}" data-dj="${j}"` : ""} role="gridcell" class="cell ${c?.s || ""} ${interactive && ui.sel.has(key) ? "sel" : ""}" style="${s ? `background-color:${s.color}` : ""}" title="${esc(title)}" aria-label="${esc(title)}">${label ? `<span>${esc(label.slice(0, 8))}</span>` : ""}</${interactive ? "button" : "div"}>`;
+    }
+  }
+  return html + "</div></div>";
+}
+
+function moduleTypesCard(p, d) {
+  return `<div class="card"><div class="between"><h2>Modultypen</h2>${d ? "" : `<button class="btn sm" data-act="addMT">+ Modultyp</button>`}</div>
+    ${p.moduleTypes.map((m) => { const used = p.roofs.filter((r) => r.moduleTypeId === m.id); const n = used.reduce((a, r) => a + countModules(r), 0);
+      const o = (f, x = {}) => ({ f, coll: "moduleTypes", id: m.id, value: m[f], dis: d, ...x });
+      return `<div class="item"><div class="g3">${fText("Hersteller", o("manufacturer", { req: 1 }))}${fText("Typ / Modell", o("model", { req: 1 }))}${fText("Nennleistung (Wp)", o("wp", { req: 1, t: "num", type: "number" }))}</div>
+      <div class="between"><span class="muted small">${n} Module · ${fmtKwp(Math.round(n * (m.wp || 0)) / 1000)}</span>${d ? "" : `<button class="btn sm danger" data-act="delMT" data-id="${m.id}" ${used.length ? "disabled title='wird verwendet'" : ""}>Entfernen</button>`}</div></div>`; }).join("") || '<p class="muted">Noch kein Modultyp angelegt.</p>'}</div>`;
+}
+
+function stringsCard(p, d) {
+  const cnt = new Map(); let total = 0, un = 0;
+  for (const r of p.roofs) for (const c of Object.values(r.cells)) if (c.s === "modul") { total++; if (c.str && p.strings.some((s) => s.id === c.str)) cnt.set(c.str, (cnt.get(c.str) || 0) + 1); else un++; }
+  const inv = p.components.filter((c) => c.category === "wechselrichter");
+  return `<div class="card"><div class="between"><h2>Strings und Wechselrichter</h2>${d ? "" : `<button class="btn sm" data-act="addString">+ String</button>`}</div>
+    <p class="muted small">Optional. Module im Raster mit dem Werkzeug „String“ zuordnen. Zugeordnet: <span class="num">${total - un} von ${total}</span>.</p>
+    <div class="tbl-wrap"><table><thead><tr><th>String</th><th>Farbe</th><th>Wechselrichter</th><th>MPP</th><th>Module</th><th></th></tr></thead><tbody>
+    ${p.strings.map((s) => `<tr><td><input id="s-${s.id}-name" value="${esc(s.name)}" data-coll="strings" data-id="${s.id}" data-f="name" ${d ? "disabled" : ""} style="max-width:90px"></td>
+      <td><input id="s-${s.id}-color" type="color" value="${s.color}" data-coll="strings" data-id="${s.id}" data-f="color" data-rr="1" ${d ? "disabled" : ""} style="width:50px;padding:2px"></td>
+      <td><select id="s-${s.id}-inv" data-coll="strings" data-id="${s.id}" data-f="inverterId" ${d ? "disabled" : ""}><option value="">– keiner –</option>${inv.map((c) => `<option value="${c.id}" ${s.inverterId === c.id ? "selected" : ""}>${esc(c.manufacturer + " " + c.model)}</option>`).join("")}</select></td>
+      <td><input id="s-${s.id}-mpp" value="${esc(s.mpp)}" data-coll="strings" data-id="${s.id}" data-f="mpp" ${d ? "disabled" : ""} style="max-width:60px"></td>
+      <td class="num">${cnt.get(s.id) || 0}</td><td>${d ? "" : `<button class="btn sm danger" data-act="delString" data-id="${s.id}">Löschen</button>`}</td></tr>`).join("") || '<tr><td colspan="6" class="muted">Keine Strings angelegt.</td></tr>'}
+    </tbody></table></div></div>`;
+}
+
+function stepKomp(p) {
+  const d = !editable(p);
+  return `<div class="card"><h2>Komponenten</h2><p class="muted small">Je Komponente Hersteller, Modell, Seriennummer, Einbauort und ein Foto des Typenschilds.</p>
+    ${d ? "" : `<div class="row">${Object.entries(COMP).map(([k, l]) => `<button class="btn sm" data-act="addComp" data-k="${k}">+ ${l}</button>`).join("")}</div>`}</div>
+    ${p.components.map((c) => { const o = (f, x = {}) => ({ f, coll: "components", id: c.id, value: c[f], dis: d, ...x });
+      return `<div class="card"><div class="between"><h3>${COMP[c.category]}${c.model ? " · " + esc(c.manufacturer + " " + c.model) : ""}</h3>${d ? "" : `<button class="btn sm danger" data-act="delComp" data-id="${c.id}">Löschen</button>`}</div>
+      <div class="g3">${fSelect("Kategorie", o("category", { rr: 1, placeholder: false }), Object.entries(COMP))}${fText("Hersteller", o("manufacturer", { req: 1 }))}${fText("Modell", o("model", { req: 1 }))}
+        ${fText("Seriennummer", o("serial"))}${fText("Einbauort", o("location", { ph: "z. B. Keller" }))}${fText("Inbetriebnahmedatum", o("date", { type: "date" }))}
+        ${c.category === "speicher" ? fText("Kapazität (kWh)", o("kwh", { t: "num", type: "number" })) : fText("Nennleistung (kW)", o("kw", { t: "num", type: "number" }))}
+        ${fArea("Bemerkung", o("notes", { cls: "span" }))}</div>
+      ${photoStrip(p, (f) => f.componentId === c.id, { category: COMP_PHOTO[c.category], componentId: c.id }, d)}</div>`; }).join("") || '<p class="muted">Noch keine Komponenten erfasst.</p>'}`;
+}
+
+function photoStrip(p, filter, meta, d) {
+  const list = p.photos.filter(filter);
+  return `<div class="photos">${list.map((f) => photoTile(f, d, false)).join("")}</div>${d ? "" : uploadButtons(meta, true)}`;
+}
+function uploadButtons(meta, compact) {
+  const m = esc(JSON.stringify(meta));
+  return `<div class="row"><label class="btn ${compact ? "sm" : "pri"}">📷 ${compact ? "Foto" : "Foto aufnehmen"}<input type="file" accept="image/*" capture="environment" hidden data-upload="${m}"></label>
+    <label class="btn ${compact ? "sm" : ""}">📁 ${compact ? "Datei" : "Aus Dateien wählen"}<input type="file" accept="image/*" multiple hidden data-upload="${m}"></label></div>`;
+}
+function photoTile(f, d, showCat = true) {
+  return `<figure class="photo" style="margin:0"><img src="${f.data}" alt="${esc(f.caption || PHOTO[f.category])}">
+    <figcaption class="m"><input id="ph-${f.id}-c" value="${esc(f.caption)}" placeholder="Bildunterschrift" data-coll="photos" data-id="${f.id}" data-f="caption" ${d ? "disabled" : ""}>
+    <input id="ph-${f.id}-d" type="date" value="${esc(f.date || "")}" data-coll="photos" data-id="${f.id}" data-f="date" ${d ? "disabled" : ""} aria-label="Aufnahmedatum">
+    ${showCat ? `<select id="ph-${f.id}-k" data-coll="photos" data-id="${f.id}" data-f="category" data-rr="1" ${d ? "disabled" : ""}>${Object.entries(PHOTO).map(([k, l]) => `<option value="${k}" ${f.category === k ? "selected" : ""}>${l}</option>`).join("")}</select>` : ""}
+    ${d ? "" : `<button class="btn sm danger" data-act="delPhoto" data-id="${f.id}">Löschen</button>`}</figcaption></figure>`;
+}
+
+function stepFotos(p) {
+  const d = !editable(p); const req = new Set(S.company.requiredPhotos);
+  const cnt = {}; for (const f of p.photos) cnt[f.category] = (cnt[f.category] || 0) + 1;
+  const shown = p.photos.filter((f) => ui.photoFilter === "alle" || f.category === ui.photoFilter);
+  const used = Math.round(new Blob([JSON.stringify(S)]).size / 1024);
+  return `<div class="card"><h2>Fotos und Nachweise</h2>
+    <p class="muted small">Pflichtkategorien erfüllt: <b>${[...req].filter((c) => cnt[c]).length} / ${req.size}</b>. Fotos werden vor dem Speichern verkleinert. Browser-Speicher belegt: ca. ${used} KB von etwa 5000 KB.</p>
+    <div class="chips">${Object.entries(PHOTO).map(([k, l]) => `<button class="pill ${req.has(k) ? (cnt[k] ? "ok" : "err") : ""} ${ui.photoFilter === k ? "on" : ""}" data-act="photoFilter" data-k="${k}" aria-pressed="${ui.photoFilter === k}">${l}${req.has(k) ? " *" : ""}: ${cnt[k] || 0}</button>`).join("")}</div></div>
+    ${d ? "" : `<div class="card"><div class="row" style="align-items:end"><label class="field" style="max-width:260px">Kategorie für neue Fotos<select id="photocat" data-ui="photoCat">${Object.entries(PHOTO).map(([k, l]) => `<option value="${k}" ${ui.photoCat === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>${uploadButtons({ category: ui.photoCat }, false)}</div></div>`}
+    <div class="between"><h2>${ui.photoFilter === "alle" ? "Alle Fotos" : PHOTO[ui.photoFilter]} (${shown.length})</h2>${ui.photoFilter !== "alle" ? `<button class="btn sm" data-act="photoFilter" data-k="alle">Alle anzeigen</button>` : ""}</div>
+    ${shown.length ? `<div class="photos">${shown.map((f) => photoTile(f, d)).join("")}</div>` : '<p class="muted">Keine Fotos vorhanden.</p>'}`;
+}
+
+function seg(coll, id, f, value, labels, d) {
+  return `<div class="seg" role="radiogroup">${Object.entries(labels).map(([k, l]) => `<button class="btn sm ${value === k ? "on" : ""}" role="radio" aria-checked="${value === k}" data-act="seg" data-coll="${coll}" data-id="${id}" data-f="${f}" data-k="${k}" ${d ? "disabled" : ""}>${l}</button>`).join("")}</div>`;
+}
+function stepPruefung(p) {
+  const d = !editable(p);
+  return `<div class="card"><h2>Prüf- und Inbetriebnahmewerte</h2><p class="muted small">Pflichtpunkte mit *. Der Katalog ist ein Beispiel und muss vor dem Echtbetrieb fachlich freigegeben werden.</p>
+    ${p.tests.map((t) => { const miss = t.required && !t.status; const mv = t.required && t.status === "geprueft" && t.unit && blank(t.value);
+      return `<div class="item"><div class="between"><strong>${esc(t.label)}${t.required ? ' <span style="color:var(--err)">*</span>' : ""}</strong>${miss ? '<span class="pill err">offen</span>' : mv ? '<span class="pill err">Messwert fehlt</span>' : ""}</div>
+      <div class="row">${seg("tests", t.id, "status", t.status, TEST_ST, d)}
+      ${t.unit ? `<span class="row" style="flex-wrap:nowrap;gap:6px"><input id="t-${t.id}-v" class="${mv ? "miss" : ""}" style="width:110px" inputmode="decimal" value="${esc(t.value)}" data-coll="tests" data-id="${t.id}" data-f="value" ${d ? "disabled" : ""} aria-label="Messwert"><span>${esc(t.unit)}</span></span>` : ""}
+      <input id="t-${t.id}-c" style="flex:1 1 200px;width:auto" placeholder="Kommentar" value="${esc(t.comment)}" data-coll="tests" data-id="${t.id}" data-f="comment" ${d ? "disabled" : ""}></div></div>`; }).join("")}
+    ${d ? "" : `<div class="row item"><input id="newtest" placeholder="Weiterer Prüfpunkt (optional)" style="flex:1 1 220px;width:auto"><input id="newunit" placeholder="Einheit" style="width:90px"><button class="btn sm" data-act="addTest">Hinzufügen</button></div>`}</div>
+    <div class="card"><h2>Abschlusscheckliste</h2><p class="muted small">Bei „nicht erledigt“ ist eine Begründung Pflicht (begründete Abweichung).</p>
+    ${p.checklist.map((x) => { const need = x.required && x.status === "nicht_erledigt" && blank(x.comment);
+      return `<div class="item"><div class="between"><strong>${esc(x.text)}${x.required ? ' <span style="color:var(--err)">*</span>' : ""}</strong>${x.required && !x.status ? '<span class="pill err">offen</span>' : ""}</div>
+      <div class="row">${seg("checklist", x.id, "status", x.status, CHECK_ST, d)}<input id="c-${x.id}-c" class="${need ? "miss" : ""}" style="flex:1 1 220px;width:auto" placeholder="${x.status === "nicht_erledigt" ? "Begründung der Abweichung (Pflicht)" : "Kommentar"}" value="${esc(x.comment)}" data-coll="checklist" data-id="${x.id}" data-f="comment" ${d ? "disabled" : ""}></div></div>`; }).join("")}
+    ${d ? "" : `<div class="row item"><input id="newcheck" placeholder="Weiterer Checklistenpunkt (optional)" style="flex:1 1 220px;width:auto"><button class="btn sm" data-act="addCheck">Hinzufügen</button></div>`}</div>`;
+}
+
+function stepMaengel(p) {
+  const d = !editable(p); const open = p.defects.filter((x) => x.status !== "erledigt");
+  return `<div class="card"><div class="between"><h2>Mängel und Restpunkte</h2>${d ? "" : `<button class="btn pri" data-act="addDefect">+ Mangel erfassen</button>`}</div>
+    ${open.length ? `<div class="note warn"><b>${open.length} offene(r) Punkt(e)</b>${open.some((x) => x.priority === "hoch") ? " – darunter mit hoher Priorität (blockiert den Abschluss)." : ""}</div>` : '<p class="muted">Keine offenen Mängel.</p>'}</div>
+    ${[...p.defects].sort((a, b) => (a.status === "erledigt") - (b.status === "erledigt")).map((x) => { const o = (f, e = {}) => ({ f, coll: "defects", id: x.id, value: x[f], dis: d, ...e });
+      return `<div class="card" style="${x.status !== "erledigt" ? `border-left:5px solid ${x.priority === "hoch" ? "var(--err)" : "var(--mark)"}` : ""}">
+      <div class="between"><span class="pill ${x.status === "erledigt" ? "ok" : x.priority === "hoch" ? "err" : "warn"}">${DEF_ST[x.status]}</span>${d ? "" : `<button class="btn sm danger" data-act="delDefect" data-id="${x.id}">Löschen</button>`}</div>
+      <div class="g3">${fArea("Beschreibung", o("description", { cls: "span" }))}${fSelect("Kategorie", o("category", { placeholder: false }), ["Montage", "Elektrik", "Dach", "Dokumentation", "Restarbeit", "sonstiges"].map((k) => [k, k]))}
+      ${fSelect("Priorität", o("priority", { rr: 1, placeholder: false }), Object.entries(DEF_PRIO))}${fText("Verantwortlich", o("responsible"))}${fText("Fällig bis", o("due", { type: "date" }))}
+      ${fSelect("Status", o("status", { rr: 1, placeholder: false }), Object.entries(DEF_ST))}</div>
+      ${photoStrip(p, (f) => f.defectId === x.id, { category: "mangel", defectId: x.id }, d)}</div>`; }).join("")}`;
+}
+
+function stepAbschluss(p) {
+  const issues = checkCompleteness(p); const errs = issues.filter((i) => i.level === "error"); const warns = issues.filter((i) => i.level === "warning");
+  const tr = allowedTransitions(p);
+  return `<div class="card"><h2>Vollständigkeitsprüfung</h2>
+    ${errs.length ? `<div class="note err"><b>${errs.length} Fehler</b> – so kann das Projekt nicht abgeschlossen werden.</div>` : '<div class="note ok">Alle Pflichtangaben sind vollständig.</div>'}
+    ${issues.length ? `<ul class="issues">${[...errs, ...warns].map((i) => `<li><span class="pill ${i.level === "error" ? "err" : "warn"}">${i.level === "error" ? "Fehler" : "Hinweis"}</span><span class="m">${esc(i.m)}</span><button class="linkbtn" data-act="step" data-k="${i.step}">→ ${STEP_LABEL[i.step]}</button></li>`).join("")}</ul>` : ""}</div>
+    <div class="card"><h2>Unterschriften und Übergabe</h2><div class="g2">${sigBox(p, "dokumentierender", "Dokumentierender", p.installer)}${sigBox(p, "bauherr", "Bauherr / Empfänger", clientName(p))}</div></div>
+    <div class="card"><h2>Status und Freigabe</h2>
+    <p>Aktueller Status: <span class="pill st-${p.status}">${STATUS[p.status]}</span> · Version ${p.version}</p>
+    ${tr.length ? `<label class="field">Kommentar zum Statuswechsel${p.status === "abgeschlossen" ? " (Begründung erforderlich)" : ""}<input id="statuscomment"></label>
+      <div class="row">${tr.map((to) => `<button class="btn ${to === "abgeschlossen" ? "pri" : ""}" data-act="status" data-k="${to}" ${to === "abgeschlossen" && errs.length ? "disabled title='Erst alle Fehler beheben'" : ""}>${to === "nacharbeit" && p.status === "abgeschlossen" ? "Neue Version eröffnen (Nacharbeit)" : to === "abgeschlossen" ? "Prüfen und abschließen" : "→ " + STATUS[to]}</button>`).join("")}</div>`
+      : `<p class="muted">Für die Rolle „${ROLES[S.role]}“ sind in diesem Status keine Statuswechsel möglich.${S.role === "monteur" && p.status === "zur_pruefung" ? " Abschließen dürfen nur Projektverantwortliche." : ""}</p>`}</div>
+    <div class="card"><h2>Bericht und Export</h2>
+    <div class="row"><button class="btn pri" data-act="report">Bericht anzeigen</button><button class="btn" data-act="exportJson">JSON exportieren</button></div>
+    <p class="muted small">Die fertige App erzeugt den Bericht als PDF. Im Prototyp wird er als Seite angezeigt.</p>
+    ${p.versions.length ? `<h3>Freigegebene Versionen</h3><div class="tbl-wrap"><table><thead><tr><th>Version</th><th>Abgeschlossen</th><th>Von</th><th>Kommentar</th><th></th></tr></thead><tbody>${p.versions.map((v, i) => `<tr><td>v${v.version}</td><td>${fmtDT(v.at)}</td><td>${esc(v.by)}</td><td>${esc(v.comment || "–")}</td><td><button class="linkbtn" data-act="reportVersion" data-i="${i}">Bericht</button></td></tr>`).join("")}</tbody></table></div>` : ""}</div>`;
+}
+
+function sigBox(p, role, title, defName) {
+  const s = p.signatures.find((x) => x.role === role && x.version === p.version);
+  const d = !editable(p);
+  if (s) return `<div class="field"><span>${title}</span><img class="sigimg" src="${s.img}" alt="Unterschrift ${esc(s.name)}"><span class="small" style="color:var(--ink)">${esc(s.name)}${s.place ? ", " + esc(s.place) : ""} · ${fmtDT(s.at)}</span>${s.comment ? `<span class="small">„${esc(s.comment)}“</span>` : ""}${d ? "" : `<div><button class="btn sm danger" data-act="delSig" data-k="${role}">Entfernen</button></div>`}</div>`;
+  if (d) return `<div class="field"><span>${title}</span><span class="muted">Keine Unterschrift.</span></div>`;
+  return `<div class="field"><span>${title}</span>
+    <input id="sig-${role}-name" placeholder="Name" value="${esc(defName)}"><input id="sig-${role}-place" placeholder="Ort" value="${esc(p.site.differs ? p.site.city : p.client.city)}">
+    ${role === "bauherr" ? `<input id="sig-${role}-comment" placeholder="Übergabekommentar (optional)">` : ""}
+    <canvas class="sigpad" id="pad-${role}" aria-label="Unterschriftenfeld ${title}"></canvas>
+    <div class="row"><button class="btn sm" data-act="clearSig" data-k="${role}">Feld leeren</button><button class="btn sm pri" data-act="saveSig" data-k="${role}">Unterschrift speichern</button></div></div>`;
+}
+
+function stepProtokoll(p) {
+  return `<div class="card"><h2>Änderungsprotokoll</h2><p class="muted small">Wesentliche Änderungen, Statuswechsel und Exporte mit Benutzer, Rolle und Zeitpunkt (neueste zuerst).</p>
+    <div class="tbl-wrap"><table><thead><tr><th>Zeitpunkt</th><th>Benutzer</th><th>Vorgang</th><th>Details</th><th>Version</th></tr></thead><tbody>
+    ${[...p.audit].reverse().map((a) => `<tr><td class="num" style="white-space:nowrap">${fmtDT(a.at)}</td><td>${esc(a.user)}${a.role ? `<br><span class="muted small">${ROLES[a.role] || ""}</span>` : ""}</td><td>${esc(a.action)}</td><td class="small">${esc(a.detail || "")}</td><td>v${a.version}</td></tr>`).join("")}
+    </tbody></table></div></div>`;
+}
+
+// ---------------------------------------------------------------- Bericht
+function renderReportPage(p) {
+  const snap = ui.report != null ? JSON.parse(p.versions[ui.report].snapshot) : p;
+  if (ui.report != null) snap.photos = (snap.photoIds || []).map((id) => p.photos.find((f) => f.id === id)).filter(Boolean);
+  return `<div class="row noprint"><button class="btn" data-act="backFromReport">← Zurück zum Projekt</button><span class="muted small">${ui.report != null ? "Freigegebene Version v" + snap.version : "Aktueller Stand"}. Im Browser lässt sich diese Seite über „Drucken → Als PDF speichern“ sichern, wenn die Datei direkt geöffnet ist.</span></div>
+    ${renderReport(snap)}`;
+}
+function kv(rows) { return `<div class="kv">${rows.map(([k, v]) => `<div>${esc(k)}</div><div>${esc(v == null || v === "" ? "–" : v)}</div>`).join("")}</div>`; }
+function table(head, rows) { return `<div class="tbl-wrap"><table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c == null || c === "" ? "–" : c)}</td>`).join("")}</tr>`).join("") || `<tr><td colspan="${head.length}">–</td></tr>`}</tbody></table></div>`; }
+function renderReport(p) {
+  const t = totals(p); const draft = !isLocked(p);
+  const comps = new Map(p.components.map((c) => [c.id, c]));
+  const open = p.defects.filter((d) => d.status !== "erledigt");
+  return `<article class="report">${draft ? '<div class="draft">ENTWURF</div>' : ""}
+    <div class="rhead"><span>${esc(S.company.header || S.company.name)}</span><span>Anlagendokumentation ${esc(p.number)} · Version ${p.version}</span></div>
+    <div style="font:700 1.1rem var(--font-display)">${esc(S.company.name)}</div>
+    <h1 style="font-size:1.7rem">Anlagendokumentation Photovoltaik</h1><div style="font-size:1.05rem">${esc(p.number)} – ${esc(p.name)}</div>
+    <div class="kpis"><div class="kpi"><b>${fmtKwp(t.kwp)}</b><span>Leistung</span></div><div class="kpi"><b>${t.modules}</b><span>Module</span></div><div class="kpi"><b>${p.roofs.length}</b><span>Dachflächen</span></div></div>
+    ${draft ? '<div class="alert">Entwurf – das Projekt ist noch nicht abgeschlossen und freigegeben.</div>' : ""}
+    <h2>1. Projekt- und Bauherrendaten</h2>
+    ${kv([["Projektnummer", p.number], ["Installationsdatum", fmtDate(p.installation_date)], ["Ausführendes Unternehmen", p.contractor], ["Verantwortlicher Monteur", p.installer], ["Bauherr", clientName(p)], ["Anschrift Bauherr", addr(p.client)], ["Telefon / E-Mail", [p.client.phone, p.client.email].filter(Boolean).join(" / ")], ["Anlagenstandort", p.site.differs ? siteAddr(p) : "wie Anschrift Bauherr"], ["Status / Version", STATUS[p.status] + " / " + p.version]])}
+    <h2>2. Anlagenübersicht</h2>
+    ${table(["Dachfläche", "Richtung", "Neigung", "Modul", "Anzahl", "Leistung"], p.roofs.map((r) => { const m = moduleType(p, r); return [r.name, r.orientation ? ORIENT[r.orientation] : "", r.tilt != null ? r.tilt + "°" : "", m ? `${m.manufacturer} ${m.model} (${m.wp} Wp)` : "", countModules(r), fmtKwp(roofKwp(p, r))]; }))}
+    ${p.strings.length ? "<h3>Strings</h3>" + table(["String", "Wechselrichter", "MPP-Tracker", "Module"], p.strings.map((s) => { const inv = comps.get(s.inverterId); return [s.name, inv ? inv.manufacturer + " " + inv.model : "", s.mpp, p.roofs.reduce((a, r) => a + Object.values(r.cells).filter((c) => c.s === "modul" && c.str === s.id).length, 0)]; })) : ""}
+    <h2 class="pagebreak">3. Dachflächen und Modulbelegung</h2>
+    ${p.roofs.map((r) => `<h3>${esc(r.name)}${r.orientation ? " – " + ORIENT[r.orientation] : ""}</h3>
+      ${kv([["Dachform / Neigung", [r.roof_type, r.tilt != null ? r.tilt + "°" : ""].filter(Boolean).join(", ")], ["Eindeckung / Montage", [r.covering, r.mounting].filter(Boolean).join(", ")], ["Raster", `${r.rows} Reihen × ${r.cols} Spalten, Module ${r.format === "quer" ? "quer" : "hochkant"}`], ["Module / Leistung", `${countModules(r)} / ${fmtKwp(roofKwp(p, r))}`]])}
+      ${gridHtml(p, r, { interactive: false, small: true })}
+      ${Object.entries(r.cells).filter(([, c]) => c.sn).length ? `<p class="small">Seriennummern: ${Object.entries(r.cells).filter(([, c]) => c.sn).map(([k, c]) => posLabel(...k.split(":").map(Number)) + ": " + esc(c.sn)).join("; ")}</p>` : ""}`).join("")}
+    <h2 class="pagebreak">4. Komponenten</h2>
+    ${table(["Kategorie", "Hersteller / Modell", "Seriennummer", "Einbauort", "Inbetriebnahme", "Daten"], p.components.map((c) => [COMP[c.category], c.manufacturer + " " + c.model, c.serial, c.location, fmtDate(c.date), c.kwh != null ? fmtNum(c.kwh) + " kWh" : c.kw != null ? fmtNum(c.kw) + " kW" : ""]))}
+    <h2>5. Prüf- und Inbetriebnahmewerte</h2>
+    ${table(["Prüfpunkt", "Wert", "Status", "Kommentar"], p.tests.map((x) => [x.label + (x.required ? " *" : ""), x.value ? x.value + " " + x.unit : "", x.status ? TEST_ST[x.status] : "offen", x.comment]))}
+    <h3>Abschlusscheckliste</h3>
+    ${table(["Punkt", "Status", "Kommentar / Begründung"], p.checklist.map((x) => [x.text + (x.required ? " *" : ""), x.status ? CHECK_ST[x.status] : "offen", x.comment]))}
+    <h2>6. Mängel und Restpunkte</h2>
+    ${open.length ? `<div class="alert"><b>${open.length} offene(r) Mangel/Restpunkt(e)</b></div>` : "<p>Keine offenen Mängel.</p>"}
+    ${p.defects.length ? table(["Beschreibung", "Priorität", "Verantwortlich", "Fällig", "Status"], p.defects.map((d) => [d.description, DEF_PRIO[d.priority], d.responsible, fmtDate(d.due), d.status === "erledigt" ? "erledigt" : "OFFEN (" + DEF_ST[d.status] + ")"])) : ""}
+    ${p.photos.length ? `<h2 class="pagebreak">7. Fotodokumentation</h2><div class="rphotos">${p.photos.map((f) => `<figure style="margin:0"><img src="${f.data}" alt=""><figcaption class="small"><b>${PHOTO[f.category]}</b> · ${esc(f.caption)} · Aufnahme ${fmtDate(f.date)}</figcaption></figure>`).join("")}</div>` : ""}
+    <h2>8. Übergabe und Unterschriften</h2>
+    <div class="g2">${["dokumentierender", "bauherr"].map((role) => { const s = p.signatures.find((x) => x.role === role && x.version === p.version); return `<div><b>${role === "bauherr" ? "Bauherr / Empfänger" : "Dokumentierender"}</b><div style="height:90px;border-bottom:1px solid #16212c;display:flex;align-items:flex-end">${s ? `<img src="${s.img}" alt="" style="height:85px">` : ""}</div><div class="small">${s ? esc(s.name) + (s.place ? ", " + esc(s.place) : "") + " · " + fmtDT(s.at) : "Name, Ort, Datum"}</div>${s?.comment ? `<div class="small">Kommentar: ${esc(s.comment)}</div>` : ""}</div>`; }).join("")}</div>
+    <div class="rhead" style="border-top:1px solid #d5dce4;border-bottom:0;padding-top:6px;margin-top:14px"><span>${esc(S.company.footer)}</span><span>erstellt ${fmtDT(new Date().toISOString())}</span></div>
+  </article>`;
+}
+
+// ---------------------------------------------------------------- Verwaltung
+function renderAdmin() {
+  const c = S.company;
+  const tpl = (kind, title) => `<div class="card"><div class="between"><h2>${title}</h2><button class="btn sm" data-act="tplAdd" data-k="${kind}">+ Punkt</button></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Text</th>${kind === "pruefung" ? "<th>Einheit</th>" : ""}<th>Pflicht</th><th></th></tr></thead><tbody>
+    ${c.templates[kind].map((x, i) => `<tr><td><input id="tpl-${kind}-${i}-t" value="${esc(x.text)}" data-tpl="${kind}" data-i="${i}" data-k="text"></td>${kind === "pruefung" ? `<td><input id="tpl-${kind}-${i}-u" value="${esc(x.unit)}" data-tpl="${kind}" data-i="${i}" data-k="unit" style="width:80px"></td>` : ""}<td><input id="tpl-${kind}-${i}-r" type="checkbox" ${x.required ? "checked" : ""} data-tpl="${kind}" data-i="${i}" data-k="required"></td><td><button class="btn sm danger" data-act="tplDel" data-k="${kind}" data-i="${i}">Löschen</button></td></tr>`).join("")}
+    </tbody></table></div><p class="muted small">Änderungen gelten für neu angelegte Projekte.</p></div>`;
+  return `<h1>Verwaltung</h1>
+    <div class="card"><h2>Firma und Bericht</h2><div class="g2">
+      <label class="field">Firmenname<input id="co-name" value="${esc(c.name)}" data-co="name"></label>
+      <label class="field">Ihr Name (für Protokoll und Bericht)<input id="co-user" value="${esc(S.user)}" data-co="user"></label>
+      <label class="field">Kopfzeile Bericht<input id="co-h" value="${esc(c.header)}" data-co="header" placeholder="Standard: Firmenname"></label>
+      <label class="field">Fußzeile Bericht<input id="co-f" value="${esc(c.footer)}" data-co="footer"></label></div></div>
+    <div class="card"><h2>Mindestfotos für den Abschluss</h2><div class="row">${Object.entries(PHOTO).map(([k, l]) => `<label class="check"><input type="checkbox" data-reqphoto="${k}" ${c.requiredPhotos.includes(k) ? "checked" : ""}> ${l}</label>`).join("")}</div></div>
+    ${tpl("checkliste", "Vorlage Abschlusscheckliste")}${tpl("pruefung", "Vorlage Prüf- und Messwerte")}
+    <div class="card"><h2>Prototyp-Daten</h2><p class="muted small">Setzt alle Daten in diesem Browser zurück und lädt das Beispielprojekt neu.</p><div><button class="btn danger" data-act="resetAll">Alles zurücksetzen</button></div></div>`;
+}
+
+// ---------------------------------------------------------------- Unterschriften-Zeichenfeld
+const pads = {};
+function initPads() {
+  for (const cv of document.querySelectorAll("canvas.sigpad")) {
+    const role = cv.id.replace("pad-", ""); const ratio = Math.min(devicePixelRatio || 1, 2);
+    cv.width = cv.clientWidth * ratio; cv.height = cv.clientHeight * ratio;
+    const ctx = cv.getContext("2d"); ctx.scale(ratio, ratio); ctx.lineWidth = 2.2; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#0b1f3a";
+    pads[role] = { cv, empty: true }; let drawing = false;
+    const pos = (e) => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    cv.onpointerdown = (e) => { drawing = true; cv.setPointerCapture(e.pointerId); const [x, y] = pos(e); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 0.1, y + 0.1); ctx.stroke(); pads[role].empty = false; };
+    cv.onpointermove = (e) => { if (!drawing) return; const [x, y] = pos(e); ctx.lineTo(x, y); ctx.stroke(); };
+    cv.onpointerup = cv.onpointercancel = () => { drawing = false; };
+  }
+}
+function afterRender() { initPads(); }
+
+// ---------------------------------------------------------------- Raster-Interaktion
+const drag = { active: false };
+function gridAction(p, r, key) {
+  const c = r.cells[key];
+  switch (ui.tool) {
+    case "modul": if (c && c.s !== "modul") return null; return c ? "leeren" : "modul";
+    case "hindernis": return c?.s === "hindernis" ? "leeren" : "hindernis";
+    case "gesperrt": return c?.s === "gesperrt" ? "leeren" : "gesperrt";
+    case "leeren": return "leeren";
+    case "string": if (c?.s !== "modul") return null; return c.str === ui.activeString ? "unstring" : "string";
+  }
+  return null;
+}
+function applyCell(r, key, act, startState) {
+  const c = r.cells[key];
+  if (ui.tool === "modul" && c && c.s !== "modul") return;
+  if ((ui.tool === "hindernis" || ui.tool === "gesperrt") && act === "leeren" && c?.s !== startState) return;
+  if (act === "modul") { if (c?.s !== "modul") r.cells[key] = { s: "modul", l: "", str: null, sn: "" }; }
+  else if (act === "hindernis" || act === "gesperrt") r.cells[key] = { s: act, l: c && c.s !== "modul" ? c.l : "", str: null, sn: "" };
+  else if (act === "leeren") delete r.cells[key];
+  else if (act === "string" && c?.s === "modul") c.str = ui.activeString;
+  else if (act === "unstring" && c?.s === "modul") c.str = null;
+}
+function cellAt(x, y) { const el = document.elementFromPoint(x, y)?.closest("[data-di]"); return el ? [Number(el.dataset.di), Number(el.dataset.dj)] : null; }
+function gridChanged(p, r, msg) { audit(p, "Modulraster geändert", `${r.name}: ${countModules(r)} Module${msg ? " (" + msg + ")" : ""}`); save(); redrawGrid(); }
+function redrawGrid() { const p = cur(); const r = p?.roofs.find((x) => x.id === ui.roofId); if (!r || !$("#gridbox")) return; $("#gridbox").innerHTML = gridEditor(p, r, !editable(p)); refreshHead(); const tab = document.querySelector(`[data-act="roofTab"][data-id="${r.id}"] .num`); if (tab) tab.textContent = countModules(r); }
+
+document.addEventListener("pointerdown", (e) => {
+  const g = e.target.closest?.(".pv-grid[data-grid]"); if (!g || e.button > 0) return;
+  const p = cur(); const r = p.roofs.find((x) => x.id === g.dataset.grid); const pos = cellAt(e.clientX, e.clientY); if (!pos) return;
+  e.preventDefault(); g.setPointerCapture(e.pointerId);
+  const [lr, lc] = d2l(pos[0], pos[1], r.rows, r.cols, r.rotation); const key = lr + ":" + lc;
+  Object.assign(drag, { active: true, r, start: pos, visited: new Set([key]), moved: false });
+  if (ui.tool === "auswahl") { ui.sel = new Set([key]); markSel(); return; }
+  const act = gridAction(p, r, key); drag.act = act; drag.startState = r.cells[key]?.s;
+  if (act) { applyCell(r, key, act, drag.startState); paintCell(g, pos, r); }
+});
+document.addEventListener("pointermove", (e) => {
+  if (!drag.active) return; const pos = cellAt(e.clientX, e.clientY); if (!pos) return;
+  const r = drag.r; const [lr, lc] = d2l(pos[0], pos[1], r.rows, r.cols, r.rotation); const key = lr + ":" + lc;
+  if (ui.tool === "auswahl") {
+    const [i0, i1] = [Math.min(drag.start[0], pos[0]), Math.max(drag.start[0], pos[0])], [j0, j1] = [Math.min(drag.start[1], pos[1]), Math.max(drag.start[1], pos[1])];
+    ui.sel = new Set(); for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const [a, b] = d2l(i, j, r.rows, r.cols, r.rotation); ui.sel.add(a + ":" + b); }
+    markSel(); return;
+  }
+  if (drag.visited.has(key) || !drag.act) return; drag.visited.add(key);
+  applyCell(r, key, drag.act, drag.startState); paintCell(document.querySelector(".pv-grid[data-grid]"), pos, r);
+});
+function endDrag() { if (!drag.active) return; drag.active = false; const p = cur(); if (!p) return; if (ui.tool === "auswahl") redrawGrid(); else if (drag.act) gridChanged(p, drag.r); }
+document.addEventListener("pointerup", endDrag); document.addEventListener("pointercancel", endDrag);
+function paintCell(g, pos, r) {
+  // Schnelles Nachzeichnen einer einzelnen Zelle während des Ziehens
+  const el = g.querySelector(`[data-di="${pos[0]}"][data-dj="${pos[1]}"]`); if (!el) return;
+  const [lr, lc] = d2l(pos[0], pos[1], r.rows, r.cols, r.rotation); const c = r.cells[lr + ":" + lc]; const s = c?.str ? cur().strings.find((x) => x.id === c.str) : null;
+  el.className = "cell " + (c?.s || ""); el.style.backgroundColor = s ? s.color : "";
+  el.innerHTML = c?.s === "modul" ? (s ? `<span>${esc(s.name)}</span>` : "") : c ? `<span>${esc(c.l || (c.s === "gesperrt" ? "✕" : ""))}</span>` : "";
+}
+function markSel() { const r = drag.r; for (const el of document.querySelectorAll(".pv-grid[data-grid] [data-di]")) { const [a, b] = d2l(+el.dataset.di, +el.dataset.dj, r.rows, r.cols, r.rotation); el.classList.toggle("sel", ui.sel.has(a + ":" + b)); } }
+
+// ---------------------------------------------------------------- Eingaben
+document.addEventListener("input", onInput);
+document.addEventListener("change", onInput);
+function onInput(e) {
+  const el = e.target;
+  if (el.dataset.ui) return onUiInput(el, e);
+  if (el.dataset.co) { if (el.dataset.co === "user") S.user = el.value; else S.company[el.dataset.co] = el.value; save(); return; }
+  if (el.dataset.reqphoto && e.type === "change") { const k = el.dataset.reqphoto; S.company.requiredPhotos = el.checked ? [...S.company.requiredPhotos, k] : S.company.requiredPhotos.filter((x) => x !== k); save(); return; }
+  if (el.dataset.tpl) { const x = S.company.templates[el.dataset.tpl][+el.dataset.i]; x[el.dataset.k] = el.type === "checkbox" ? el.checked : el.value; save(); return; }
+  if (el.dataset.upload && e.type === "change") return upload(el);
+  if (!el.dataset.f) return;
+  // Textfelder werden bei "input" übernommen; das nachfolgende "change" (beim Verlassen) würde sonst
+  // die Kopfzeile neu zeichnen und einen gleichzeitigen Klick auf einen Schritt verschlucken.
+  const textLike = el.tagName === "TEXTAREA" || (el.tagName === "INPUT" && !["checkbox", "radio", "color"].includes(el.type));
+  if (e.type === "change" && textLike && !el.dataset.rr) return;
+  if (el.dataset.rr && e.type === "input" && el.type !== "radio" && el.type !== "checkbox" && el.tagName !== "SELECT") return; // erst bei "change"
+  const p = cur(); if (!p || !editable(p)) return;
+  let v = el.type === "checkbox" ? el.checked : el.value;
+  if (el.dataset.t === "num") v = v === "" ? null : Number(String(v).replace(",", "."));
+  if (el.dataset.t === "int") v = Math.round(Number(v));
+  const target = el.dataset.coll ? p[el.dataset.coll].find((x) => x.id === el.dataset.id) : p;
+  if (!target) return;
+  if (el.dataset.coll === "roofs" && (el.dataset.f === "rows" || el.dataset.f === "cols")) return resizeRoof(p, target, el.dataset.f, v, el);
+  setPath(target, el.dataset.f, v);
+  el.classList.toggle("miss", el.closest(".field")?.querySelector(".req") != null && blank(v));
+  const label = el.closest("label")?.querySelector("span")?.textContent?.replace("*", "").trim() || el.getAttribute("placeholder") || el.dataset.f;
+  const where = el.dataset.coll ? ({ roofs: "Dachfläche", components: "Komponente", moduleTypes: "Modultyp", strings: "String", photos: "Foto", tests: "Prüfwert", checklist: "Checkliste", defects: "Mangel" })[el.dataset.coll] : "Projekt";
+  audit(p, `${where} geändert`, label);
+  save();
+  if (el.dataset.rr && e.type === "change") rerenderBody(); else refreshHead();
+}
+async function resizeRoof(p, r, f, v, el) {
+  const max = f === "rows" ? 40 : 60; if (!(v >= 1)) return; v = Math.min(v, max);
+  const rows = f === "rows" ? v : r.rows, cols = f === "cols" ? v : r.cols;
+  const lost = Object.keys(r.cells).filter((k) => { const [a, b] = k.split(":").map(Number); return a >= rows || b >= cols; });
+  if (lost.length && !(await modal({ title: "Raster verkleinern?", body: `<p>Dabei werden ${lost.length} belegte oder markierte Positionen entfernt.</p>`, ok: "Verkleinern", danger: true }))) { el.value = r[f]; return; }
+  for (const k of lost) delete r.cells[k];
+  r[f] = v; ui.sel = new Set(); audit(p, "Dachfläche geändert", `${r.name}: Raster ${r.rows} × ${r.cols}`); save(); rerenderBody();
+}
+function onUiInput(el, e) {
+  const k = el.dataset.ui;
+  if (k === "q") { ui.q = el.value; const pos = el.selectionStart; $("#main").innerHTML = renderList(); const n = $("#q"); n.focus(); n.setSelectionRange(pos, pos); return; }
+  if (k === "status") { ui.status = el.value; render(); return; }
+  if (k === "photoCat") { ui.photoCat = el.value; rerenderBody(); return; }
+  const p = cur(); const r = p?.roofs.find((x) => x.id === ui.roofId);
+  if (k === "selstring" && e.type === "change" && el.value) {
+    for (const key of ui.sel) { const c = r.cells[key]; if (c?.s === "modul") c.str = el.value === "-" ? null : el.value; }
+    gridChanged(p, r, "String-Zuordnung"); return;
+  }
+  if (k === "serial") { const key = [...ui.sel][0]; if (r.cells[key]) { r.cells[key].sn = el.value; audit(p, "Seriennummer Modul", r.name + " " + posLabel(...key.split(":").map(Number))); save(); } }
+}
+
+// ---------------------------------------------------------------- Fotos hochladen
+async function compress(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image(); img.src = url; await img.decode();
+    const sc = Math.min(1, 1280 / Math.max(img.naturalWidth, img.naturalHeight));
+    const cv = document.createElement("canvas"); cv.width = Math.round(img.naturalWidth * sc); cv.height = Math.round(img.naturalHeight * sc);
+    cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+    return cv.toDataURL("image/jpeg", 0.72);
+  } finally { URL.revokeObjectURL(url); }
+}
+async function upload(el) {
+  const p = cur(); if (!p || !editable(p)) return; const meta = JSON.parse(el.dataset.upload); const files = [...el.files]; const fails = [];
+  setSave("", `Fotos werden verarbeitet (0/${files.length}) …`);
+  for (let i = 0; i < files.length; i++) {
+    try {
+      const data = await compress(files[i]);
+      p.photos.push({ id: uid(), category: meta.category, data, caption: "", date: files[i].lastModified ? new Date(files[i].lastModified).toISOString().slice(0, 10) : today(), componentId: meta.componentId || null, defectId: meta.defectId || null });
+      setSave("", `Fotos werden verarbeitet (${i + 1}/${files.length}) …`);
+    } catch (err) { fails.push(files[i].name); }
+  }
+  audit(p, "Fotos hinzugefügt", `${files.length - fails.length} × ${PHOTO[meta.category]}`);
+  saveNow(); rerenderBody();
+  if (fails.length) note(`Diese Dateien konnten nicht gelesen werden: ${fails.join(", ")}. Bitte als JPEG oder PNG auswählen.`, "err");
+}
+
+// ---------------------------------------------------------------- Aktionen
+const A = {
+  home() { ui.page = "list"; persistView(); render(); },
+  nav(el) { ui.page = el.dataset.k; persistView(); render(); },
+  open(el) { ui.page = "project"; ui.pid = el.dataset.id; ui.step = "stammdaten"; ui.sel = new Set(); persistView(); render(); scrollTo(0, 0); },
+  step(el) { ui.step = el.dataset.k; ui.page = "project"; ui.sel = new Set(); persistView(); render(); scrollTo(0, 0); },
+  async newProject() {
+    const n = await modal({ title: "Neues Projekt", body: '<p class="muted small">Projektnummer eingeben. Den Namen und alle weiteren Angaben erfassen Sie im Assistenten.</p>', input: { value: new Date().getFullYear() + "-", placeholder: "Projektnummer" }, ok: "Anlegen" });
+    if (!n || !n.trim()) return;
+    if (S.projects.some((p) => p.number === n.trim())) return note("Diese Projektnummer ist bereits vergeben.", "err");
+    const p = newProject(n.trim(), "Neues Projekt"); p.audit.push({ at: new Date().toISOString(), user: S.user, role: S.role, action: "Projekt angelegt", detail: p.number, version: 1 });
+    S.projects.push(p); ui.page = "project"; ui.pid = p.id; ui.step = "stammdaten"; persistView(); render();
+  },
+  async deleteProject() {
+    const p = cur(); const ok = await modal({ title: "Projekt löschen?", body: `<p>${esc(p.number)} wird mit allen Daten und Fotos entfernt. Das lässt sich nicht rückgängig machen.</p>`, ok: "Endgültig löschen", danger: true });
+    if (!ok) return; S.projects = S.projects.filter((x) => x.id !== p.id); ui.page = "list"; persistView(); render();
+  },
+  roofTab(el) { ui.roofId = el.dataset.id; ui.sel = new Set(); rerenderBody(); },
+  async addRoof() {
+    const p = cur(); const n = await modal({ title: "Neue Dachfläche", input: { value: `Dachfläche ${p.roofs.length + 1}`, placeholder: "z. B. Haus Süd, Garage Ost" }, ok: "Anlegen" });
+    if (!n || !n.trim()) return; const r = newRoof(n.trim(), p.roofs.length); r.moduleTypeId = p.moduleTypes[0]?.id ?? null; p.roofs.push(r); ui.roofId = r.id;
+    audit(p, "Dachfläche angelegt", r.name); save(); rerenderBody();
+  },
+  dupRoof() { const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); const c = clone(r); c.id = uid(); c.name = r.name + " (Kopie)"; for (const k in c.cells) { c.cells[k].str = null; c.cells[k].sn = ""; } p.roofs.push(c); ui.roofId = c.id; audit(p, "Dachfläche dupliziert", r.name); save(); rerenderBody(); },
+  async delRoof() { const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); if (!(await modal({ title: "Dachfläche löschen?", body: `<p>„${esc(r.name)}“ mit ${countModules(r)} Modulen wird entfernt.</p>`, ok: "Löschen", danger: true }))) return; p.roofs = p.roofs.filter((x) => x.id !== r.id); audit(p, "Dachfläche gelöscht", r.name); save(); rerenderBody(); },
+  orient(el) { const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); r.orientation = el.dataset.k; audit(p, "Dachfläche geändert", r.name + ": Himmelsrichtung " + r.orientation); save(); rerenderBody(); },
+  tool(el) { ui.tool = el.dataset.k; if (ui.tool !== "auswahl") ui.sel = new Set(); redrawGrid(); },
+  activeString(el) { ui.activeString = el.dataset.id; redrawGrid(); },
+  fillAll() { const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); for (let a = 0; a < r.rows; a++) for (let b = 0; b < r.cols; b++) if (!r.cells[a + ":" + b]) r.cells[a + ":" + b] = { s: "modul", l: "", str: null, sn: "" }; gridChanged(p, r, "alle belegt"); },
+  async resetGrid() { const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); if (!(await modal({ title: "Raster zurücksetzen?", body: "<p>Alle Module, Hindernisse und Zuordnungen dieser Dachfläche werden entfernt.</p>", ok: "Zurücksetzen", danger: true }))) return; r.cells = {}; ui.sel = new Set(); gridChanged(p, r, "zurückgesetzt"); },
+  rotate() { const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); r.rotation = (r.rotation + 90) % 360; save(); redrawGrid(); },
+  format() { const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); r.format = r.format === "quer" ? "hoch" : "quer"; audit(p, "Dachfläche geändert", r.name + ": Modulformat " + r.format); save(); redrawGrid(); },
+  selClear() { ui.sel = new Set(); redrawGrid(); },
+  selApply(el) { const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); for (const k of ui.sel) applyCell(r, k, el.dataset.k, null); if (el.dataset.k === "leeren") ui.sel = new Set(); gridChanged(p, r, "Auswahl"); },
+  async selLabel() {
+    const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId);
+    const l = await modal({ title: "Beschriftung", body: '<p class="muted small">Für Hindernisse oder Freiflächen, z. B. Kamin, Dachfenster, Gaube.</p>', input: { placeholder: "Beschriftung" } }); if (l == null) return;
+    for (const k of ui.sel) { const c = r.cells[k]; if (c && c.s !== "modul") c.l = l.slice(0, 40); else if (!c) r.cells[k] = { s: "hindernis", l: l.slice(0, 40), str: null, sn: "" }; }
+    gridChanged(p, r, "Beschriftung");
+  },
+  addMT() { const p = cur(); p.moduleTypes.push({ id: uid(), manufacturer: "", model: "", wp: null }); audit(p, "Modultyp angelegt"); save(); rerenderBody(); },
+  delMT(el) { const p = cur(); p.moduleTypes = p.moduleTypes.filter((m) => m.id !== el.dataset.id); audit(p, "Modultyp entfernt"); save(); rerenderBody(); },
+  addString() { const p = cur(); let n = p.strings.length + 1; while (p.strings.some((s) => s.name === "S" + n)) n++; const inv = p.components.filter((c) => c.category === "wechselrichter"); p.strings.push({ id: uid(), name: "S" + n, color: STRING_COLORS[(n - 1) % STRING_COLORS.length], inverterId: inv.length === 1 ? inv[0].id : null, mpp: "" }); audit(p, "String angelegt", "S" + n); save(); rerenderBody(); },
+  delString(el) { const p = cur(); const id = el.dataset.id; p.strings = p.strings.filter((s) => s.id !== id); for (const r of p.roofs) for (const c of Object.values(r.cells)) if (c.str === id) c.str = null; audit(p, "String gelöscht"); save(); rerenderBody(); },
+  addComp(el) { const p = cur(); p.components.push({ id: uid(), category: el.dataset.k, manufacturer: "", model: "", serial: "", location: "", date: p.installation_date, kw: null, kwh: null, notes: "" }); audit(p, "Komponente angelegt", COMP[el.dataset.k]); save(); rerenderBody(); },
+  async delComp(el) { const p = cur(); const c = p.components.find((x) => x.id === el.dataset.id); if (!(await modal({ title: "Komponente löschen?", body: `<p>${COMP[c.category]} ${esc(c.model)} wird entfernt.</p>`, ok: "Löschen", danger: true }))) return; p.components = p.components.filter((x) => x.id !== c.id); for (const s of p.strings) if (s.inverterId === c.id) s.inverterId = null; audit(p, "Komponente gelöscht", COMP[c.category]); save(); rerenderBody(); },
+  async delPhoto(el) { const p = cur(); if (!(await modal({ title: "Foto löschen?", ok: "Löschen", danger: true }))) return; p.photos = p.photos.filter((f) => f.id !== el.dataset.id); audit(p, "Foto gelöscht"); save(); rerenderBody(); },
+  photoFilter(el) { ui.photoFilter = ui.photoFilter === el.dataset.k ? "alle" : el.dataset.k; rerenderBody(); },
+  seg(el) { const p = cur(); if (!editable(p)) return; const x = p[el.dataset.coll].find((y) => y.id === el.dataset.id); x[el.dataset.f] = x[el.dataset.f] === el.dataset.k ? null : el.dataset.k; audit(p, el.dataset.coll === "tests" ? "Prüfwert geändert" : "Checkliste geändert", (x.label || x.text) + ": " + (x.status ? (TEST_ST[x.status] || CHECK_ST[x.status]) : "offen")); save(); rerenderBody(); },
+  addTest() { const p = cur(); const t = $("#newtest").value.trim(); if (!t) return; p.tests.push({ id: uid(), label: t, unit: $("#newunit").value.trim(), required: false, value: "", status: null, comment: "" }); audit(p, "Prüfpunkt hinzugefügt", t); save(); rerenderBody(); },
+  addCheck() { const p = cur(); const t = $("#newcheck").value.trim(); if (!t) return; p.checklist.push({ id: uid(), text: t, required: false, status: null, comment: "" }); audit(p, "Checklistenpunkt hinzugefügt", t); save(); rerenderBody(); },
+  async addDefect() { const p = cur(); const t = await modal({ title: "Mangel erfassen", input: { placeholder: "Kurzbeschreibung" }, ok: "Erfassen" }); if (!t || !t.trim()) return; p.defects.push({ id: uid(), description: t.trim(), category: "Montage", priority: "mittel", responsible: "", due: "", status: "offen", created_at: new Date().toISOString() }); audit(p, "Mangel erfasst", t.trim()); save(); rerenderBody(); },
+  async delDefect(el) { const p = cur(); if (!(await modal({ title: "Mangel löschen?", ok: "Löschen", danger: true }))) return; p.defects = p.defects.filter((x) => x.id !== el.dataset.id); audit(p, "Mangel gelöscht"); save(); rerenderBody(); },
+  clearSig(el) { const pad = pads[el.dataset.k]; if (!pad) return; pad.cv.getContext("2d").clearRect(0, 0, pad.cv.width, pad.cv.height); pad.empty = true; },
+  saveSig(el) {
+    const p = cur(); const role = el.dataset.k; const pad = pads[role]; const name = $(`#sig-${role}-name`).value.trim();
+    if (!pad || pad.empty || !name) return note("Bitte Namen eintragen und im Feld unterschreiben.", "err");
+    p.signatures = p.signatures.filter((s) => !(s.role === role && s.version === p.version));
+    p.signatures.push({ role, name, place: $(`#sig-${role}-place`).value.trim(), comment: $(`#sig-${role}-comment`)?.value.trim() || "", at: new Date().toISOString(), img: pad.cv.toDataURL("image/png"), version: p.version });
+    audit(p, "Unterschrift erfasst", (role === "bauherr" ? "Bauherr: " : "Dokumentierender: ") + name); save(); rerenderBody();
+  },
+  delSig(el) { const p = cur(); p.signatures = p.signatures.filter((s) => !(s.role === el.dataset.k && s.version === p.version)); audit(p, "Unterschrift entfernt"); save(); rerenderBody(); },
+  async status(el) {
+    const p = cur(); const to = el.dataset.k; const comment = $("#statuscomment")?.value.trim() || "";
+    if (p.status === "abgeschlossen" && to === "nacharbeit" && !comment) return note("Bitte eine Begründung für die Wiedereröffnung angeben.", "err");
+    if (to === "abgeschlossen") {
+      const errs = checkCompleteness(p).filter((i) => i.level === "error");
+      if (errs.length) return note("Das Projekt ist unvollständig: " + errs.map((i) => i.m).join("; "), "err");
+      if (!(await modal({ title: "Projekt abschließen?", body: "<p>Die Version wird danach gegen Änderungen gesperrt. Änderungen sind nur über eine neue Version möglich.</p>", ok: "Abschließen" }))) return;
+    }
+    const from = p.status;
+    if (from === "abgeschlossen" && to === "nacharbeit") p.version += 1;
+    p.status = to;
+    if (to === "abgeschlossen" && from === "zur_pruefung") {
+      const snap = clone(p); snap.photoIds = p.photos.map((f) => f.id); delete snap.photos; delete snap.versions; delete snap.audit;
+      p.versions.push({ version: p.version, at: new Date().toISOString(), by: S.user, comment, snapshot: JSON.stringify(snap) });
+    }
+    audit(p, "Statuswechsel", `${STATUS[from]} → ${STATUS[to]}${comment ? " („" + comment + "“)" : ""}`);
+    save(); render();
+  },
+  report() { ui.page = "report"; ui.report = null; render(); scrollTo(0, 0); audit(cur(), "Bericht angezeigt"); save(); },
+  reportVersion(el) { ui.page = "report"; ui.report = Number(el.dataset.i); render(); scrollTo(0, 0); },
+  backFromReport() { ui.page = "project"; ui.step = "abschluss"; render(); },
+  async exportJson() {
+    const p = cur(); const data = JSON.stringify({ format: "pv-doku-prototyp", version: 1, exported_at: new Date().toISOString(), project: p });
+    audit(p, "JSON exportiert"); save();
+    await modal({ title: "Projekt exportieren", wide: true, body: `<p class="muted small">Text kopieren und z. B. als .json-Datei speichern. Über „Importieren“ lässt er sich wieder einlesen. ${p.photos.length ? "Fotos sind enthalten." : ""}</p><textarea id="exp" readonly>${esc(data)}</textarea><div><button class="btn sm" id="copyexp">In die Zwischenablage kopieren</button> <span id="copymsg" class="small muted"></span></div>`, ok: "Schließen", cancel: null });
+  },
+  async import() {
+    const pr = modal({ title: "Projekt importieren", wide: true, body: `<p class="muted small">Exportierten Text einfügen oder eine .json-Datei wählen. Das Projekt wird als neuer Entwurf angelegt.</p><input type="file" id="impfile" accept=".json,application/json"><textarea id="imp" placeholder='{"format":"pv-doku-prototyp", …}'></textarea>`, ok: "Importieren" });
+    $("#impfile").onchange = async (e) => { const f = e.target.files[0]; if (f) $("#imp").value = await f.text(); };
+    const txt = $("#imp"); const ok = await pr; if (!ok) return;
+    try {
+      const d = JSON.parse(txt.value); if (d.format !== "pv-doku-prototyp" || !d.project?.number) throw new Error();
+      const p = d.project; p.id = uid(); p.status = "entwurf"; p.versions = []; p.signatures = [];
+      let n = p.number, i = 1; while (S.projects.some((x) => x.number === n)) n = `${p.number}-import${i++ > 1 ? "-" + i : ""}`; p.number = n;
+      p.audit = [...(p.audit || []), { at: new Date().toISOString(), user: S.user, role: S.role, action: "Importiert", detail: "aus Export vom " + fmtDT(d.exported_at), version: p.version }];
+      S.projects.push(p); saveNow(); ui.page = "project"; ui.pid = p.id; ui.step = "stammdaten"; render();
+    } catch { note("Der Text ist kein gültiger Export dieses Prototyps.", "err"); }
+  },
+  tplAdd(el) { S.company.templates[el.dataset.k].push({ text: "Neuer Punkt", unit: "", required: false }); save(); render(); },
+  tplDel(el) { S.company.templates[el.dataset.k].splice(+el.dataset.i, 1); save(); render(); },
+  async resetAll() { if (!(await modal({ title: "Alles zurücksetzen?", body: "<p>Alle Projekte und Einstellungen in diesem Browser werden gelöscht und das Beispielprojekt neu geladen.</p>", ok: "Zurücksetzen", danger: true }))) return; S = seed(); ui.page = "list"; saveNow(); render(); },
+};
+
+document.addEventListener("click", async (e) => {
+  if (e.target.id === "copyexp") { const t = $("#exp"); try { await navigator.clipboard.writeText(t.value); $("#copymsg").textContent = "Kopiert."; } catch { t.focus(); t.select(); $("#copymsg").textContent = "Text ist markiert – bitte mit Strg+C bzw. „Kopieren“ übernehmen."; } return; }
+  const el = e.target.closest("[data-act]"); if (!el || el.disabled) return;
+  // Tastaturbedienung des Rasters (Klick ohne Zeiger)
+  const fn = A[el.dataset.act]; if (fn) fn(el, e);
+});
+document.addEventListener("keydown", (e) => {
+  const el = e.target.closest?.("[data-di]"); if (!el || (e.key !== "Enter" && e.key !== " ")) return;
+  e.preventDefault(); const p = cur(); const r = p.roofs.find((x) => x.id === ui.roofId); if (!editable(p)) return;
+  const [lr, lc] = d2l(+el.dataset.di, +el.dataset.dj, r.rows, r.cols, r.rotation); const key = lr + ":" + lc;
+  if (ui.tool === "auswahl") { ui.sel.has(key) ? ui.sel.delete(key) : ui.sel.add(key); redrawGrid(); }
+  else { const act = gridAction(p, r, key); if (act) { applyCell(r, key, act, r.cells[key]?.s); gridChanged(p, r); } }
+  const again = document.querySelector(`.pv-grid [data-di="${el.dataset.di}"][data-dj="${el.dataset.dj}"]`); if (again) again.focus();
+});
+$("#role").addEventListener("change", (e) => { S.role = e.target.value; if (S.role !== "admin" && ui.page === "admin") ui.page = "list"; save(); render(); });
+
+// ---------------------------------------------------------------- Start
+S = load();
+if (S.view) { ui.page = S.view.page === "report" ? "project" : S.view.page; ui.pid = S.view.pid; ui.step = S.view.step || "stammdaten"; }
+render();
+setSave("", "lokal gespeichert");
+</script>
